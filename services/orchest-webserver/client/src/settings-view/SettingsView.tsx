@@ -2,116 +2,27 @@ import { useOrchestConfigsApi } from "@/api/system-config/useOrchestConfigsApi";
 import { Code } from "@/components/common/Code";
 import { CircularProgressIcon } from "@/components/common/icons/CircularProgressIcon";
 import { useAppContext } from "@/contexts/AppContext";
-import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useHasChanged } from "@/hooks/useHasChanged";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
-import SaveIcon from "@mui/icons-material/Save";
-import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { checkHeartbeat, fetcher, hasValue } from "@orchest/lib-utils";
-import "codemirror/mode/javascript/javascript";
 import React from "react";
-import { Controlled as CodeMirror } from "react-codemirror2";
 import { useHostInfo } from "./hooks/useHostInfo";
 import { useOrchestStatus } from "./hooks/useOrchestStatus";
-import { useOrchestUserConfig } from "./hooks/useOrchestUserConfig";
 import { SettingsViewLayout } from "./SettingsViewLayout";
+import { UserConfig } from "./UserConfig";
 
 export const SettingsView = () => {
-  const {
-    setAlert,
-    setAsSaved,
-    setConfirm,
-    state: { hasUnsavedChanges },
-  } = useGlobalContext();
-
-  const orchestConfig = useOrchestConfigsApi((state) => state.config);
-
-  const { orchestVersion, checkUpdate } = useAppContext();
-
   useSendAnalyticEvent("view:loaded", { name: siteMap.settings.path });
 
-  const [status, setStatus] = useOrchestStatus();
-
-  const hasRestarted = useHasChanged(
-    status,
-    (prev, curr) => prev === "restarting" && curr === "online"
-  );
-
-  React.useEffect(() => {
-    if (hasRestarted) window.location.reload();
-  }, [hasRestarted]);
+  const orchestConfig = useOrchestConfigsApi((state) => state.config);
+  const { orchestVersion, checkUpdate } = useAppContext();
+  const { status, restart } = useOrchestStatus();
 
   const hostInfo = useHostInfo();
-
-  const {
-    userConfig,
-    setUserConfig,
-    saveUserConfig,
-    requiresRestart,
-    setRequiresRestart,
-    saveUserConfigError,
-  } = useOrchestUserConfig(setAsSaved, orchestConfig);
-
-  React.useEffect(() => {
-    if (hasValue(saveUserConfigError))
-      setAlert(
-        "Error",
-        `Failed to save config. ${saveUserConfigError || "Unknown reason."}`
-      );
-  }, [saveUserConfigError, setAlert]);
-
-  const restartOrchest = () => {
-    return setConfirm(
-      "Warning",
-      "Are you sure you want to restart Orchest? This will terminate all running Orchest containers (including kernels/pipelines).",
-      async (resolve) => {
-        setStatus("restarting");
-        setRequiresRestart([]);
-
-        try {
-          await fetcher("/async/restart", { method: "POST" });
-          resolve(true);
-
-          setTimeout(() => {
-            checkHeartbeat("/heartbeat")
-              .then(() => {
-                console.log("Orchest available");
-                setStatus("online");
-              })
-              .catch((retries) => {
-                console.log(
-                  "Update service heartbeat checking timed out after " +
-                    retries +
-                    " retries."
-                );
-              });
-          }, 5000); // allow 5 seconds for orchest-controller to stop orchest
-          return true;
-        } catch (error) {
-          console.error(error);
-          resolve(false);
-          setAlert("Error", "Could not trigger restart.");
-          return false;
-        }
-      }
-    );
-  };
-
-  const isValidUserConfig = React.useMemo(() => {
-    if (!userConfig) return true;
-    try {
-      JSON.parse(userConfig);
-      return true;
-    } catch {
-      return false;
-    }
-  }, [userConfig]);
 
   // Assuming any 2TB+ available GB indication to be
   // unreliable. This is mainly due to unconstrained
@@ -190,8 +101,8 @@ export const SettingsView = () => {
             {status !== "restarting" && (
               <Button
                 variant="text"
-                onClick={restartOrchest}
-                onAuxClick={restartOrchest}
+                onClick={restart}
+                onAuxClick={restart}
                 sx={{ marginLeft: (theme) => theme.spacing(2) }}
               >
                 Restart
@@ -199,45 +110,7 @@ export const SettingsView = () => {
             )}
           </Stack>
         </Stack>
-        <Stack direction="column" alignItems="flex-start" spacing={1}>
-          <Typography variant="h6">Custom configuration</Typography>
-          <CodeMirror
-            value={userConfig || ""}
-            options={{
-              mode: "application/json",
-              theme: "jupyter",
-              lineNumbers: true,
-            }}
-            onBeforeChange={(editor, data, value) => {
-              setUserConfig(value);
-            }}
-          />
-          <Stack
-            direction="row"
-            spacing={3}
-            sx={{
-              marginTop: (theme) => theme.spacing(1),
-              marginBottom: (theme) => theme.spacing(1),
-            }}
-          >
-            <Button
-              variant="contained"
-              startIcon={<SaveIcon />}
-              disabled={!isValidUserConfig}
-              onClick={() => saveUserConfig()}
-            >
-              {hasUnsavedChanges ? "SAVE*" : "SAVE"}
-            </Button>
-            {!isValidUserConfig && (
-              <Alert severity="warning">Your input is not valid JSON.</Alert>
-            )}
-            {requiresRestart.length > 0 && (
-              <Alert severity="info">{`Restart Orchest for the changes to ${requiresRestart
-                .map((val) => `"${val}"`)
-                .join(" ")} to take effect.`}</Alert>
-            )}
-          </Stack>
-        </Stack>
+        <UserConfig />
       </Stack>
     </SettingsViewLayout>
   );
