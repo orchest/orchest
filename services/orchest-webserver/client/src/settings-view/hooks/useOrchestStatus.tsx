@@ -19,7 +19,7 @@ export const useOrchestStatus = () => {
   );
 
   const { setAlert, setConfirm } = useGlobalContext();
-  const restartOrchest = React.useCallback(() => {
+  const restart = React.useCallback(() => {
     return setConfirm(
       "Warning",
       "Are you sure you want to restart Orchest? This will terminate all running Orchest containers (including kernels/pipelines).",
@@ -56,7 +56,7 @@ export const useOrchestStatus = () => {
     );
   }, [resetRequireRestart, setAlert, setConfirm, setStatus]);
 
-  return [status, restartOrchest] as const;
+  return { status, restart };
 };
 
 const useDisplayStatus = () => {

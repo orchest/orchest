@@ -20,7 +20,7 @@ export const SettingsView = () => {
 
   const orchestConfig = useOrchestConfigsApi((state) => state.config);
   const { orchestVersion, checkUpdate } = useAppContext();
-  const [status, restart] = useOrchestStatus();
+  const { status, restart } = useOrchestStatus();
 
   const hostInfo = useHostInfo();
 
