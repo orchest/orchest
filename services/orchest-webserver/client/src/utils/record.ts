@@ -21,13 +21,11 @@ export const omit = <T extends AnyRecord, P extends PropsOf<T>>(
 ): Omit<T, P[number]> => {
   const result: Partial<T> = {};
 
-  const keyRecord = keys.reduce((all, key) => {
-    all[key] = true;
-    return all;
-  }, {} as Record<keyof T, true>);
-
   propsOf(record).forEach((key) => {
-    if (!keyRecord[key]) result[key] = record[key];
+    // It's fine to have O(n^2) here.
+    // Note that, in practice, the length of keys is usually very small.
+    // Converting `keys` to an object would make the overall operation slower.
+    if (!keys.includes(key)) result[key] = record[key];
   });
 
   return result as Omit<T, P[number]>;
