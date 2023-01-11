@@ -185,12 +185,16 @@ const ConfigureJupyterLabView: React.FC = () => {
   return (
     <SettingsViewLayout
       header={
-        <Typography variant="h5" flex={1}>
+        <Typography
+          variant="h5"
+          flex={1}
+          sx={{ paddingBottom: (theme) => theme.spacing(2) }}
+        >
           Configure JupyterLab
         </Typography>
       }
     >
-      <Stack sx={{ marginTop: (theme) => theme.spacing(2) }}>
+      <Stack sx={{ margin: (theme) => theme.spacing(2, 0, 4) }}>
         <>
           <p className="push-down">
             You can install JupyterLab extensions using the bash script below.
