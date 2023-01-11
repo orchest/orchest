@@ -5,6 +5,16 @@ type StringPredicate = (value: string) => boolean;
 export const useTextField = (predicate: StringPredicate = () => true) => {
   const [isDirty, setIsInputDirty] = React.useState(false);
   const [value, setValue] = React.useState("");
+  const [isInitialized, setIsInitialized] = React.useState(false);
+
+  const init = React.useCallback(
+    (initialValue: string) => {
+      if (isInitialized) return;
+      setValue(initialValue);
+      setIsInitialized(true);
+    },
+    [isInitialized]
+  );
 
   const setAsDirtyOnBlur = React.useCallback(
     (
@@ -41,5 +51,7 @@ export const useTextField = (predicate: StringPredicate = () => true) => {
     setAsDirtyOnBlur,
     isDirty,
     isValid,
+    init,
+    isInitialized,
   };
 };
