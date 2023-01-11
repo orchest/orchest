@@ -5,8 +5,11 @@ import { LegacyImageBuildLog } from "@/components/legacy/LegacyImageBuildLog";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
+import { useAsync } from "@/hooks/useAsync";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { useTextField } from "@/hooks/useTextField";
 import { siteMap } from "@/routingConfig";
 import { SettingsViewLayout } from "@/settings-view/SettingsViewLayout";
 import { JupyterImageBuild } from "@/types";
@@ -17,7 +20,7 @@ import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { hasValue, uuidv4 } from "@orchest/lib-utils";
+import { fetcher, hasValue, uuidv4 } from "@orchest/lib-utils";
 import "codemirror/mode/shell/shell";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
@@ -51,9 +54,6 @@ const ConfigureJupyterLabView: React.FC = () => {
 
   const [isBuildingImage, setIsBuildingImage] = React.useState(false);
   const [isCancellingBuild, setIsCancellingBuild] = React.useState(false);
-  const [jupyterSetupScript, setJupyterSetupScript] = React.useState<
-    string | undefined
-  >(undefined);
 
   const [
     hasStartedKillingSessions,
@@ -68,23 +68,37 @@ const ConfigureJupyterLabView: React.FC = () => {
       : false;
   }, [jupyterBuild]);
 
-  const save = React.useCallback(async () => {
-    if (!hasValue(jupyterSetupScript)) return;
+  const { run } = useAsync();
+  const {
+    value: jupyterSetupScript,
+    setValue: setJupyterSetupScript,
+    setAsDirtyOnBlur,
+  } = useTextField();
 
-    let formData = new FormData();
-    formData.append("setup_script", jupyterSetupScript);
+  const payload = useDebounce(jupyterSetupScript, 250);
+  const save = React.useCallback(async () => {
+    if (!hasValue(payload)) return;
+
+    setAsSaved(false);
+
+    const formData = new FormData();
+    formData.append("setup_script", payload);
 
     try {
-      await cancelableFetch("/async/jupyter-setup-script", {
-        method: "POST",
-        body: formData,
-      });
+      await run(
+        fetcher("/async/jupyter-setup-script", {
+          method: "POST",
+          body: formData,
+        })
+      );
       setAsSaved();
     } catch (e) {
-      setAsSaved(false);
       console.error(e);
     }
-  }, [jupyterSetupScript, setAsSaved, cancelableFetch]);
+  }, [payload, run, setAsSaved]);
+  React.useEffect(() => {
+    save();
+  }, [save]);
 
   const {
     dispatch,
@@ -191,7 +205,7 @@ const ConfigureJupyterLabView: React.FC = () => {
     } catch (e) {
       setAlert("Error", `Failed to fetch setup script. ${e}`);
     }
-  }, [setAlert, cancelableFetch]);
+  }, [setAlert, cancelableFetch, setJupyterSetupScript]);
 
   React.useEffect(() => {
     getSetupScript();
@@ -236,8 +250,8 @@ const ConfigureJupyterLabView: React.FC = () => {
               You can install JupyterLab extensions using the bash script below.
             </p>
             <p className="push-down">
-              For example, you can install the Jupyterlab Code Formatter
-              extension by executing{" "}
+              {`For example, you can install the Jupyterlab Code Formatter
+              extension by executing `}
               <Code>pip install jupyterlab_code_formatter</Code>.
             </p>
 
@@ -263,7 +277,9 @@ const ConfigureJupyterLabView: React.FC = () => {
                 }}
                 onBeforeChange={(editor, data, value) => {
                   setJupyterSetupScript(value);
-                  setAsSaved(false);
+                }}
+                onBlur={(_, event) => {
+                  setAsDirtyOnBlur()(event);
                 }}
               />
             </div>
