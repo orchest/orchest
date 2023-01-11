@@ -17,21 +17,25 @@ export const useJupyterLabSetupScript = () => {
 
   const { setAsSaved } = useGlobalContext();
   const update = useJupyterLabSetupScriptApi((state) => state.update);
+  const setupScript = useJupyterLabSetupScriptApi((state) => state.setupScript);
   const isLoading = useJupyterLabSetupScriptApi(
     (state) => !hasValue(state.setupScript)
   );
 
   const textField = useTextField();
-  const { value, setValue } = textField;
-  useInitJupyterLabSetupScript(setValue);
+  const { value, isInitialized, initValue } = textField;
+  useInitJupyterLabSetupScript(initValue);
 
   const { run } = useAsync();
-  const payload = useDebounce(value, 250);
+  const payload = useDebounce(
+    isInitialized && setupScript !== value ? value : undefined,
+    250
+  );
+
   const save = React.useCallback(async () => {
     if (!hasValue(payload)) return;
 
     setAsSaved(false);
-
     try {
       await run(update(payload));
       setAsSaved();

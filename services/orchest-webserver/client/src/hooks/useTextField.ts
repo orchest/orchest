@@ -7,7 +7,7 @@ export const useTextField = (predicate: StringPredicate = () => true) => {
   const [value, setValue] = React.useState("");
   const [isInitialized, setIsInitialized] = React.useState(false);
 
-  const init = React.useCallback(
+  const initValue = React.useCallback(
     (initialValue: string) => {
       if (isInitialized) return;
       setValue(initialValue);
@@ -51,7 +51,9 @@ export const useTextField = (predicate: StringPredicate = () => true) => {
     setAsDirtyOnBlur,
     isDirty,
     isValid,
-    init,
+    /** Initialize the value */
+    initValue,
+    /** Tell if the value was ever initialized via `initValue`. */
     isInitialized,
   };
 };

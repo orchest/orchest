@@ -4,15 +4,15 @@ import React from "react";
 
 /** When JupyterLab setup script gets loaded, initialize the value with the given setValue function. */
 export const useInitJupyterLabSetupScript = (
-  setValue: React.Dispatch<React.SetStateAction<string>>
+  initValue: (value: string) => void
 ) => {
-  const initialValue = useJupyterLabSetupScriptApi(
+  const value = useJupyterLabSetupScriptApi(
     (state) => state.setupScript,
     // if value has been loaded, `equal` function always return true. It will then never trigger re-render.
     (prev) => hasValue(prev)
   );
 
   React.useEffect(() => {
-    if (initialValue) setValue(initialValue);
-  }, [initialValue, setValue]);
+    if (value) initValue(value);
+  }, [value, initValue]);
 };
