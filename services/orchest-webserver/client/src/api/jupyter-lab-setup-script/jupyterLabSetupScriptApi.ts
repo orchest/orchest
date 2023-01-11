@@ -1,4 +1,4 @@
-import { fetcher, HEADER } from "@orchest/lib-utils";
+import { fetcher } from "@orchest/lib-utils";
 
 export const JUPYTER_LAB_SETUP_SCRIPT_API_URL = "/async/jupyter-setup-script";
 
@@ -14,7 +14,6 @@ export const update = (payload: string) => {
   formData.append("setup_script", payload);
   return fetcher<void>(JUPYTER_LAB_SETUP_SCRIPT_API_URL, {
     method: "POST",
-    headers: HEADER.JSON,
     body: formData,
   });
 };
