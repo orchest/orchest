@@ -14,6 +14,8 @@ from pprint import pformat
 import requests
 import werkzeug
 from flask import Flask, request
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from flask_migrate import Migrate
 from sqlalchemy_utils import create_database, database_exists
 
@@ -58,6 +60,14 @@ def create_app(config_class=None, to_migrate_db=False):
     # might be called (inside this function) before it is migrated.
     if to_migrate_db:
         return app
+
+    limiter = Limiter(
+        app,
+        key_func=get_remote_address,
+        default_limits=[],
+        storage_uri="memory://",
+    )
+    app.config["rate_limiter"] = limiter
 
     register_views(app)
 
