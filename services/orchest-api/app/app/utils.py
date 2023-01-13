@@ -1106,3 +1106,10 @@ def upsert_auth_user_uuid(auth_user_uuid: str) -> None:
     stmt = stmt.on_conflict_do_nothing(index_elements=[models.AuthUser.uuid])
     db.session.execute(stmt)
     db.session.commit()
+
+
+def ensure_logs_directory(project_dir: str, pipeline_uuid: str) -> None:
+    log_dir_path = os.path.join(
+        project_dir, _config.LOGS_PATH.format(pipeline_uuid=pipeline_uuid)
+    )
+    os.makedirs(log_dir_path, exist_ok=True)
