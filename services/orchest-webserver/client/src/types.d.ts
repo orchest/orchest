@@ -76,7 +76,7 @@ export type EnvironmentSpec = Omit<EnvironmentData, "uuid" | "project_uuid">;
 
 export type OrchestConfig = {
   CLOUD: boolean;
-  CLOUD_UNMODIFIABLE_CONFIG_VALUES?: string[] | null;
+  CLOUD_UNMODIFIABLE_CONFIG_VALUES?: (keyof OrchestUserConfig)[] | null;
   ENVIRONMENT_DEFAULTS: EnvironmentSpec;
   FLASK_ENV: string;
   GPU_ENABLED_INSTANCE: boolean;

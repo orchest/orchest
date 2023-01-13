@@ -73,6 +73,11 @@ jobs:
         run: |
           while kubectl describe namespace orchest > /dev/null 2>& 1; \
             do echo "Waiting for Orchest uninstall to finish" && sleep 5; done
+          # Observed a race condition where these resources where
+          # reportedly still there according to k8s, leading to a
+          # failure of the installation.
+          while kubectl get crd --all-namespaces | grep orchest  > /dev/null 2>& 1; \
+            do echo "Waiting for Orchest CRDs to be removed" && sleep 5; done
           source venv/bin/activate
           orchest install --dev
           orchest version

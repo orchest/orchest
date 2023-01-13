@@ -1,43 +1,30 @@
 import { OrchestConfig, OrchestUserConfig } from "@/types";
-import cloneDeep from "lodash.clonedeep";
+import { omit, pick } from "@/utils/record";
 
-export const configToVisibleConfig = (
+/**
+ * Return a shallow copy of configJSON, with the unmodifiable properties removed.
+ * Note that this function doesn't mutate the provided objects.
+ */
+export const extractEditable = (
   orchestConfig: OrchestConfig,
   configJSON: Partial<OrchestUserConfig>
 ): Partial<OrchestUserConfig> => {
-  if (orchestConfig?.CLOUD !== true) {
-    return configJSON;
-  }
+  if (!orchestConfig?.CLOUD) return { ...configJSON };
 
-  let visibleJSON = cloneDeep(configJSON);
-
-  // strip cloud config
-  (orchestConfig?.CLOUD_UNMODIFIABLE_CONFIG_VALUES || []).forEach((key) => {
-    delete visibleJSON[key];
-  });
-
-  return visibleJSON;
+  const keysToOmit = orchestConfig?.CLOUD_UNMODIFIABLE_CONFIG_VALUES || [];
+  return omit(configJSON, ...keysToOmit);
 };
 
-export const configToInvisibleConfig = (
+/**
+ * Return a shallow copy of configJSON, with the modifiable properties removed.
+ * Note that this function doesn't mutate the provided objects.
+ */
+export const extractUneditable = (
   orchestConfig: OrchestConfig,
   configJSON: Partial<OrchestUserConfig>
 ): Partial<OrchestUserConfig> => {
-  if (orchestConfig?.CLOUD !== true) {
-    return {};
-  }
+  if (!orchestConfig?.CLOUD) return {};
 
-  let invisibleJSON = cloneDeep(configJSON);
-
-  // Strip visible config
-  const cloudUnmodifiableConfigValues =
-    orchestConfig.CLOUD_UNMODIFIABLE_CONFIG_VALUES || [];
-
-  for (let key of Object.keys(invisibleJSON)) {
-    if (!cloudUnmodifiableConfigValues.includes(key)) {
-      delete invisibleJSON[key];
-    }
-  }
-
-  return invisibleJSON;
+  const keysToPick = orchestConfig?.CLOUD_UNMODIFIABLE_CONFIG_VALUES || [];
+  return pick(configJSON, ...keysToPick);
 };

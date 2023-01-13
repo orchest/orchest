@@ -11,21 +11,22 @@ const entryHasValue: EntryPredicate = ([, value]) => hasValue(value);
  * Returns the properties of the record T as a typed array.
  * Only call this when you are sure that T does not include any extra properties.
  */
-export const propsOf = <T extends AnyRecord>(record: T): PropsOf<T> =>
+const propsOf = <T extends AnyRecord>(record: T): PropsOf<T> =>
   Object.keys(record);
 
 /** Returns a shallow copy of the record T with the properties P excluded. */
 export const omit = <T extends AnyRecord, P extends PropsOf<T>>(
   record: T,
-  ...props: P
+  ...keys: P
 ): Omit<T, P[number]> => {
   const result: Partial<T> = {};
 
-  for (const prop of propsOf(record)) {
-    if (!props.includes(prop)) {
-      result[prop] = record[prop];
-    }
-  }
+  propsOf(record).forEach((key) => {
+    // It's fine to have O(n^2) here.
+    // Note that, in practice, the length of keys is usually very small.
+    // Converting `keys` to an object would make the overall operation slower.
+    if (!keys.includes(key)) result[key] = record[key];
+  });
 
   return result as Omit<T, P[number]>;
 };
