@@ -75,6 +75,11 @@ def run_pipeline(
     # Get the pipeline to run.
     pipeline = Pipeline.from_json(pipeline_definition)
 
+    # REMOVABLE_ON_BREAKING_CHANGE. Added here to fix a race condition
+    # in a way that doesn't require rebuilding images and creating new
+    # jobs from the existing one, see commit db47da587.
+    utils.ensure_logs_directory(run_config["project_dir"], run_config["pipeline_uuid"])
+
     # TODO: don't think this task_id is needed anymore. It was
     #       introduced as part of the scheduled runs which we don't use
     #       anymore.
