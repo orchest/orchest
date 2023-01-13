@@ -4,6 +4,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { useActiveProject } from "./useActiveProject";
 
 // Note: this is the testable part of the hook `useEnsureValidPipeline`
 // as we want to separate it from the global contexts: `useCustomRoute` and `useAppContext`.
@@ -14,19 +15,20 @@ export const useEnsureValidPipelineBase = (
     pipelineUuid: string,
     replace: boolean
   ) => void,
-  projectUuidFromRoute: string | undefined,
   pipelineUuidFromRoute: string | undefined
 ) => {
   const { state, dispatch } = useProjectsContext();
 
-  const { projectUuid, pipelines, pipeline } = state;
+  const { pipelines, pipeline } = state;
+  const activeProject = useActiveProject();
+  const activeProjectUuid = activeProject?.uuid;
 
   const validPipelineUuid = React.useMemo(() => {
     const foundPipelineUuidFromRoute = (pipelines || []).find(
-      (pipeline) => pipelineUuidFromRoute === pipeline.uuid
+      (pipeline) => activeProjectUuid === pipeline.uuid
     )?.uuid;
     return foundPipelineUuidFromRoute || pipeline?.uuid;
-  }, [pipeline?.uuid, pipelineUuidFromRoute, pipelines]);
+  }, [pipeline?.uuid, activeProjectUuid, pipelines]);
 
   const pipelineUuidToOpen =
     validPipelineUuid || pipelines?.find(Boolean)?.uuid;
@@ -35,24 +37,14 @@ export const useEnsureValidPipelineBase = (
   const statesLoaded = React.useMemo(() => {
     return (
       hasValue(pipelines) &&
-      hasValue(projectUuid) &&
+      hasValue(activeProjectUuid) &&
       hasValue(pipelineUuidToOpen)
     );
-  }, [pipelines, projectUuid, pipelineUuidToOpen]);
+  }, [pipelines, activeProjectUuid, pipelineUuidToOpen]);
 
   const shouldRedirectPipeline = React.useMemo(() => {
-    return (
-      statesLoaded &&
-      projectUuidFromRoute === projectUuid && // Only redirect to pipeline when project is already redirected.
-      pipelineUuidToOpen !== pipelineUuidFromRoute
-    );
-  }, [
-    projectUuidFromRoute,
-    projectUuid,
-    pipelineUuidFromRoute,
-    pipelineUuidToOpen,
-    statesLoaded,
-  ]);
+    return statesLoaded && pipelineUuidFromRoute !== pipelineUuidToOpen;
+  }, [pipelineUuidToOpen, statesLoaded, pipelineUuidFromRoute]);
 
   React.useEffect(() => {
     if (pipelineUuidToOpen && pipelineUuidToOpen !== pipeline?.uuid) {
@@ -64,14 +56,18 @@ export const useEnsureValidPipelineBase = (
   }, [dispatch, pipeline?.uuid, pipelineUuidToOpen]);
 
   React.useEffect(() => {
-    if (shouldRedirectPipeline && pipelineUuidToOpen && projectUuid) {
+    if (shouldRedirectPipeline && activeProjectUuid && pipelineUuidToOpen) {
       // Navigate to a valid pipelineUuid.
-      customNavigateTo(projectUuid, pipelineUuidToOpen, !validPipelineUuid);
+      customNavigateTo(
+        activeProjectUuid,
+        pipelineUuidToOpen,
+        !validPipelineUuid
+      );
     }
   }, [
     customNavigateTo,
     shouldRedirectPipeline,
-    projectUuid,
+    activeProjectUuid,
     pipelineUuidToOpen,
     validPipelineUuid,
   ]);
@@ -102,7 +98,6 @@ export const useEnsureValidPipeline = () => {
   );
   const shouldShowAlert = useEnsureValidPipelineBase(
     customNavigateTo,
-    projectUuid,
     pipelineUuid
   );
 
