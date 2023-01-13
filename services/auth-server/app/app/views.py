@@ -164,13 +164,17 @@ def register_views(app: Flask) -> None:
         elif redirect_type == "server":
             return redirect(url)
 
+    def _deduct_when(response: Response) -> bool:
+        # Should use response.ok but we are on an old version of flask.
+        return response.status_code not in [200, 201]
+
     @app.route("/login/submit", methods=["POST"])
-    @rate_limiter.limit("50 per hour")
+    @rate_limiter.limit("25 per hour", methods=["POST"], deduct_when=_deduct_when)
     def login() -> Response | Tuple[Response, Literal[401]] | None:
         return handle_login()
 
     @app.route("/login", methods=["POST"])
-    @rate_limiter.limit("50 per hour")
+    @rate_limiter.limit("25 per hour", methods=["POST"], deduct_when=_deduct_when)
     def login_post() -> Response | Tuple[Response, Literal[401]] | None:
         return handle_login(redirect_type="server")
 

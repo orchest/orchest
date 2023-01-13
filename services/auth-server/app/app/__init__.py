@@ -65,6 +65,7 @@ def create_app(config_class=None, to_migrate_db=False):
         app,
         key_func=get_remote_address,
         default_limits=[],
+        strategy="fixed-window-elastic-expiry",
         storage_uri="memory://",
     )
     app.config["rate_limiter"] = limiter
