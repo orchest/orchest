@@ -55,7 +55,7 @@ export const ProjectSelectorToggle = ({
         direction="column"
         justifyContent="center"
         alignItems="flex-start"
-        sx={{ flex: 1, paddingLeft: 4, paddingRight: 3 }}
+        sx={{ flex: 1, paddingLeft: 2, paddingRight: 3 }}
       >
         <Typography variant="button" color="text.secondary">
           PROJECT
