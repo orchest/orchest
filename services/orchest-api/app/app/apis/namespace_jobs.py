@@ -8,7 +8,7 @@ from celery.contrib.abortable import AbortableAsyncResult
 from croniter import croniter
 from flask import abort, current_app, request
 from flask_restx import Namespace, Resource, marshal, reqparse
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func, or_, tuple_
 from sqlalchemy.orm import attributes, joinedload, load_only, noload, undefer
 
 import app.models as models
@@ -311,12 +311,13 @@ class PipelineRunsList(Resource):
                 "description": "Comma separated uuids.",
                 "type": str,
             },
-            "pipeline_uuid__in": {
+            "project_pipeline_uuid__in": {
                 "description": (
-                    "Comma separated uuids. "
-                    "Note that a pipeline uuid is not unique making, that is, the same "
-                    "pipeline (uuid) can be in different projects. This means that you "
-                    "likely want to specify at least a project_uuid as well."
+                    "Comma separated uuids, where the Nth uuid is a project uuid and "
+                    "the Nth+1 uuid is a pipeline uuid for all even Ns including 0, "
+                    "e.g. [proj_uuid, ppl_uuid, proj_uuid, ppl_uuid, ...]. This is "
+                    "necessary because the pipeline uuid is not unique making across "
+                    "projects."
                 ),
                 "type": str,
             },
@@ -353,7 +354,7 @@ class PipelineRunsList(Resource):
         parser.add_argument("page_size", type=int, location="args")
         parser.add_argument("fuzzy_filter", type=str, location="args")
         parser.add_argument("project_uuid__in", type=str, action="split")
-        parser.add_argument("pipeline_uuid__in", type=str, action="split")
+        parser.add_argument("project_pipeline_uuid__in", type=str, action="split")
         parser.add_argument("job_uuid__in", type=str, action="split")
         parser.add_argument("status__in", type=str, action="split")
         parser.add_argument("created_time__gt", type=str)
@@ -362,10 +363,22 @@ class PipelineRunsList(Resource):
         page = args.page
         page_size = args.page_size
         project_uuids = args.project_uuid__in
-        pipeline_uuids = args.pipeline_uuid__in
+        project_pipeline_uuids = args.project_pipeline_uuid__in
         job_uuids = args.job_uuid__in
         statuses = args.status__in
         created_time__gt = args.created_time__gt
+
+        if project_pipeline_uuids is not None and len(project_pipeline_uuids) % 2 != 0:
+            return {
+                "message": f"Invalid project_pipeline_uuids {project_pipeline_uuids}."
+            }, 400
+
+        if project_pipeline_uuids is not None:
+            project_pipeline_uuids = [
+                (project_pipeline_uuids[i], project_pipeline_uuids[i + 1])
+                for i in range(0, len(project_pipeline_uuids), 2)
+            ]
+
         if created_time__gt is not None:
             # Flask restx has dedicated types but too specific in the
             # exact format, this is more flexible.
@@ -394,27 +407,30 @@ class PipelineRunsList(Resource):
             desc(models.NonInteractivePipelineRun.job_run_pipeline_run_index),
         )
 
-        if project_uuids:
-            job_runs_query = job_runs_query.filter(
-                models.NonInteractivePipelineRun.project_uuid.in_(project_uuids)
-            )
+        if project_uuids is not None or project_pipeline_uuids is not None:
+            exp = None
+            if project_uuids is not None:
+                exp = models.NonInteractivePipelineRun.project_uuid.in_(project_uuids)
+            if project_pipeline_uuids is not None:
+                exp2 = tuple_(
+                    models.NonInteractivePipelineRun.project_uuid,
+                    models.NonInteractivePipelineRun.pipeline_uuid,
+                ).in_(project_pipeline_uuids)
+                exp = exp2 if exp is None else or_(exp, exp2)
 
-        if pipeline_uuids:
-            job_runs_query = job_runs_query.filter(
-                models.NonInteractivePipelineRun.pipeline_uuid.in_(pipeline_uuids)
-            )
+            job_runs_query = job_runs_query.filter(exp)
 
-        if job_uuids:
+        if job_uuids is not None:
             job_runs_query = job_runs_query.filter(
                 models.NonInteractivePipelineRun.job_uuid.in_(job_uuids)
             )
 
-        if statuses:
+        if statuses is not None:
             job_runs_query = job_runs_query.filter(
                 models.NonInteractivePipelineRun.status.in_(statuses)
             )
 
-        if created_time__gt:
+        if created_time__gt is not None:
             job_runs_query = job_runs_query.filter(
                 models.NonInteractivePipelineRun.created_time > created_time__gt
             )
