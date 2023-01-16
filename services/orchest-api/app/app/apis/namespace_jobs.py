@@ -317,7 +317,13 @@ class PipelineRunsList(Resource):
                     "the Nth+1 uuid is a pipeline uuid for all even Ns including 0, "
                     "e.g. [proj_uuid, ppl_uuid, proj_uuid, ppl_uuid, ...]. This is "
                     "necessary because the pipeline uuid is not unique making across "
-                    "projects."
+                    "projects. Note that, while all filters are AND'd, this particular "
+                    "filter makes an OR with the project_uuid__in one. Meaning that, "
+                    "for example, if you have a status__in, project_uuid__in and "
+                    "project_pipeline_uuid__in filter, you will get the records "
+                    "respecting a constraint like AND(status_in(), OR(project_in(), "
+                    "proj_ppl_in()). This allows for filtering runs that are part of a "
+                    "project OR of a particular pipeline."
                 ),
                 "type": str,
             },
