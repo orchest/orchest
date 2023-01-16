@@ -1,3 +1,4 @@
+import { JobRunsPageQuery } from "@/api/job-runs/jobRunsApi";
 import {
   Accordion,
   AccordionDetails,
@@ -28,20 +29,22 @@ export const AllRunsTab = () => {
     <Stack spacing={2} minHeight={625} width="100%">
       <RunFilters onChange={setFilter} />
 
-      <Accordion defaultExpanded={true}>
-        <AccordionSummary>
-          <Typography color="text.secondary" variant="subtitle1">
-            Interactive runs
-          </Typography>
-        </AccordionSummary>
+      {page === 1 && (
+        <Accordion defaultExpanded={true}>
+          <AccordionSummary>
+            <Typography color="text.secondary" variant="subtitle1">
+              Interactive runs
+            </Typography>
+          </AccordionSummary>
 
-        <AccordionDetails>
-          <PipelineRunsTable
-            breadcrumbs
-            runs={filterRuns(interactiveRuns, filter)}
-          />
-        </AccordionDetails>
-      </Accordion>
+          <AccordionDetails>
+            <PipelineRunsTable
+              breadcrumbs
+              runs={filterRuns(interactiveRuns, filter)}
+            />
+          </AccordionDetails>
+        </Accordion>
+      )}
 
       <Accordion defaultExpanded={true}>
         <AccordionSummary>
@@ -72,19 +75,23 @@ export const AllRunsTab = () => {
 };
 
 const useJobRunsFromFilter = (filter: RunFilterState, page: number) => {
-  const query = React.useMemo(() => {
-    return {
+  const query: JobRunsPageQuery = React.useMemo(
+    () => ({
       page,
       pageSize: 5,
       projectUuids: filter.projects.length
         ? filter.projects.map((project) => project.uuid)
         : undefined,
-      pipelineUuids: filter.pipelines.length
-        ? filter.pipelines.map((pipeline) => pipeline.uuid)
+      pipelines: filter.pipelines.length
+        ? filter.pipelines.map((pipeline) => ({
+            pipelineUuid: pipeline.uuid,
+            projectUuid: pipeline.project_uuid,
+          }))
         : undefined,
       statuses: filter.statuses.length ? filter.statuses : undefined,
-    };
-  }, [filter.pipelines, filter.projects, filter.statuses, page]);
+    }),
+    [filter.pipelines, filter.projects, filter.statuses, page]
+  );
 
   return useJobRunsPage(query);
 };

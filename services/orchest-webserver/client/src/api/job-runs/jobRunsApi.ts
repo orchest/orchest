@@ -16,7 +16,7 @@ export type JobRunsPageQuery = {
   page: number;
   pageSize: number;
   projectUuids?: string[];
-  pipelineUuids?: string[];
+  pipelines?: { projectUuid: string; pipelineUuid: string }[];
   jobUuids?: string[];
   statuses?: PipelineRunStatus[];
   fuzzyFilter?: string | undefined;
@@ -28,7 +28,9 @@ const toQueryParams = (query: JobRunsPageQuery) =>
     page_size: query.pageSize,
     fuzzy_filter: query.fuzzyFilter,
     project_uuid__in: query.projectUuids?.join(","),
-    pipeline_uuid__in: query.pipelineUuids?.join(","),
+    project_pipeline_uuid__in: query.pipelines
+      ?.map(({ projectUuid, pipelineUuid }) => `${projectUuid},${pipelineUuid}`)
+      .join(","),
     job_uuid__in: query.jobUuids?.join(","),
     status__in: query.statuses?.join(","),
   });

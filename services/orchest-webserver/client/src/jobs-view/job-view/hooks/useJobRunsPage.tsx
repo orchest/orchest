@@ -5,7 +5,7 @@ import React from "react";
 
 export const useJobRunsPage = ({
   projectUuids,
-  pipelineUuids,
+  pipelines,
   jobUuids,
   statuses,
   fuzzyFilter,
@@ -19,22 +19,14 @@ export const useJobRunsPage = ({
   const query: JobRunsPageQuery = React.useMemo(
     () => ({
       projectUuids,
-      pipelineUuids,
+      pipelines,
       jobUuids,
       statuses,
       fuzzyFilter,
       page,
       pageSize,
     }),
-    [
-      projectUuids,
-      pipelineUuids,
-      jobUuids,
-      statuses,
-      fuzzyFilter,
-      page,
-      pageSize,
-    ]
+    [projectUuids, pipelines, jobUuids, statuses, fuzzyFilter, page, pageSize]
   );
 
   React.useEffect(() => {
