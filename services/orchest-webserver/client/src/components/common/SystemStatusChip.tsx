@@ -14,12 +14,14 @@ export type SystemStatusChipProps = {
   status?: SystemStatus;
   flavor: StatusFlavor;
   size: "small" | "medium";
+  animate?: boolean;
 };
 
 export const SystemStatusChip = ({
   status,
   flavor,
   size,
+  animate = true,
 }: SystemStatusChipProps) => {
   if (!status) return null;
 
@@ -31,7 +33,14 @@ export const SystemStatusChip = ({
         color: statusTextColor(status),
       }}
       size={size}
-      icon={<SystemStatusIcon status={status} flavor={flavor} size={size} />}
+      icon={
+        <SystemStatusIcon
+          status={status}
+          flavor={flavor}
+          size={size}
+          animate={animate}
+        />
+      }
       label={statusTitle(status, flavor)}
     />
   );
