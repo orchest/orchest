@@ -4,7 +4,7 @@ import { fetcher } from "@orchest/lib-utils";
 
 type PipelinesResponse = { result: PipelineMetaData[] };
 
-const BASE_URL = "/async/pipelines/";
+const BASE_URL = "/async/pipelines";
 
 const fetchAll = () =>
   fetcher<PipelinesResponse>(BASE_URL).then((data) => data.result);

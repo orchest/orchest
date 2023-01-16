@@ -12,10 +12,9 @@ export type StepStatusQuery = {
   type: RunStepsType;
 };
 
-export type PipelineQuery = {
-  projectUuid: string;
-  pipelineUuid: string;
-};
+export type PipelineQuery =
+  | { pipelineUuid: string; projectUuid: string; active?: boolean }
+  | { active?: boolean };
 
 export type RunStepsType = "selection" | "incoming";
 
