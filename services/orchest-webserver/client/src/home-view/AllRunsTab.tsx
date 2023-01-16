@@ -14,7 +14,12 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { RunFilters } from "./components/RunFilters";
-import { DEFAULT_FILTER, filterRuns, RunFilterState } from "./utils/filter";
+import {
+  DEFAULT_FILTER,
+  filterRuns,
+  maxAgeInMilliseconds,
+  RunFilterState,
+} from "./utils/filter";
 
 export const AllRunsTab = () => {
   useFetchJobs();
@@ -79,6 +84,7 @@ const useJobRunsFromFilter = (filter: RunFilterState, page: number) => {
     () => ({
       page,
       pageSize: 5,
+      maxAge: maxAgeInMilliseconds(filter.maxAge),
       projectUuids: filter.projects.length
         ? filter.projects.map((project) => project.uuid)
         : undefined,
@@ -90,7 +96,7 @@ const useJobRunsFromFilter = (filter: RunFilterState, page: number) => {
         : undefined,
       statuses: filter.statuses.length ? filter.statuses : undefined,
     }),
-    [filter.pipelines, filter.projects, filter.statuses, page]
+    [filter.maxAge, filter.pipelines, filter.projects, filter.statuses, page]
   );
 
   return useJobRunsPage(query);

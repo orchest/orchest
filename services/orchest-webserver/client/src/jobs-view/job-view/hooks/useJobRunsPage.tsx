@@ -11,6 +11,7 @@ export const useJobRunsPage = ({
   fuzzyFilter,
   page,
   pageSize,
+  maxAge,
 }: JobRunsPageQuery) => {
   const pagination = useJobRunsApi((api) => api.pagination);
   const runs = useJobRunsApi((api) => api.runs);
@@ -25,8 +26,18 @@ export const useJobRunsPage = ({
       fuzzyFilter,
       page,
       pageSize,
+      maxAge,
     }),
-    [projectUuids, pipelines, jobUuids, statuses, fuzzyFilter, page, pageSize]
+    [
+      projectUuids,
+      pipelines,
+      jobUuids,
+      statuses,
+      fuzzyFilter,
+      page,
+      pageSize,
+      maxAge,
+    ]
   );
 
   React.useEffect(() => {

@@ -20,6 +20,8 @@ export type JobRunsPageQuery = {
   jobUuids?: string[];
   statuses?: PipelineRunStatus[];
   fuzzyFilter?: string | undefined;
+  /** How many milliseconds old the job run may be at most. */
+  maxAge?: number;
 };
 
 const toQueryParams = (query: JobRunsPageQuery) =>
@@ -33,6 +35,10 @@ const toQueryParams = (query: JobRunsPageQuery) =>
       .join(","),
     job_uuid__in: query.jobUuids?.join(","),
     status__in: query.statuses?.join(","),
+    created_time__gt:
+      query.maxAge && query.maxAge !== Infinity
+        ? new Date(Date.now() - query.maxAge).toISOString().split("Z")[0]
+        : undefined,
   });
 
 export type StepStatusUpdate = StatusUpdate & { stepUuid: string };
