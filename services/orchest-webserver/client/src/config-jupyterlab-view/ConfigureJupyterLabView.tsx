@@ -1,3 +1,4 @@
+import { useJupyterLabSetupScriptApi } from "@/api/jupyter-lab-setup-script/useJupyterLabSetupScriptApi";
 import { useOrchestConfigsApi } from "@/api/system-config/useOrchestConfigsApi";
 import { Code } from "@/components/common/Code";
 import { SnackBar } from "@/components/common/SnackBar";
@@ -12,26 +13,19 @@ import { SettingsViewLayout } from "@/settings-view/SettingsViewLayout";
 import { JupyterImageBuild } from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
-import SaveIcon from "@mui/icons-material/Save";
 import Button from "@mui/material/Button";
-import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { hasValue, uuidv4 } from "@orchest/lib-utils";
 import "codemirror/mode/shell/shell";
 import React from "react";
-import { Controlled as CodeMirror } from "react-codemirror2";
+import { JupyterLabSetupScript } from "./JupyterLabSetupScript";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
 const ConfigureJupyterLabView: React.FC = () => {
   // global
-  const {
-    state: { hasUnsavedChanges },
-    setAlert,
-    setConfirm,
-    setAsSaved,
-  } = useGlobalContext();
+  const { setAlert, setConfirm } = useGlobalContext();
   const config = useOrchestConfigsApi((state) => state.config);
   const {
     deleteAllSessions,
@@ -51,9 +45,6 @@ const ConfigureJupyterLabView: React.FC = () => {
 
   const [isBuildingImage, setIsBuildingImage] = React.useState(false);
   const [isCancellingBuild, setIsCancellingBuild] = React.useState(false);
-  const [jupyterSetupScript, setJupyterSetupScript] = React.useState<
-    string | undefined
-  >(undefined);
 
   const [
     hasStartedKillingSessions,
@@ -67,24 +58,6 @@ const ConfigureJupyterLabView: React.FC = () => {
       ? CANCELABLE_STATUSES.includes(jupyterBuild.status)
       : false;
   }, [jupyterBuild]);
-
-  const save = React.useCallback(async () => {
-    if (!hasValue(jupyterSetupScript)) return;
-
-    let formData = new FormData();
-    formData.append("setup_script", jupyterSetupScript);
-
-    try {
-      await cancelableFetch("/async/jupyter-setup-script", {
-        method: "POST",
-        body: formData,
-      });
-      setAsSaved();
-    } catch (e) {
-      setAsSaved(false);
-      console.error(e);
-    }
-  }, [jupyterSetupScript, setAsSaved, cancelableFetch]);
 
   const {
     dispatch,
@@ -108,7 +81,6 @@ const ConfigureJupyterLabView: React.FC = () => {
     setIgnoreIncomingLogs(true);
 
     try {
-      await save();
       const response = await cancelableFetch<{
         jupyter_image_build: JupyterImageBuild;
       }>("/catch/api-proxy/api/jupyter-builds", { method: "POST" });
@@ -149,7 +121,7 @@ const ConfigureJupyterLabView: React.FC = () => {
       }
     }
     setIsBuildingImage(false);
-  }, [deleteAllSessions, save, setAlert, setConfirm, cancelableFetch]);
+  }, [deleteAllSessions, setAlert, setConfirm, cancelableFetch]);
 
   const cancelImageBuild = async () => {
     // send DELETE to cancel ongoing build
@@ -182,21 +154,6 @@ const ConfigureJupyterLabView: React.FC = () => {
     }
   };
 
-  const getSetupScript = React.useCallback(async () => {
-    try {
-      const { script } = await cancelableFetch<{ script: string }>(
-        "/async/jupyter-setup-script"
-      );
-      setJupyterSetupScript(script || "");
-    } catch (e) {
-      setAlert("Error", `Failed to fetch setup script. ${e}`);
-    }
-  }, [setAlert, cancelableFetch]);
-
-  React.useEffect(() => {
-    getSetupScript();
-  }, [getSetupScript]);
-
   React.useEffect(() => {
     const isAllSessionsDeletedForBuildingImage =
       hasStartedKillingSessions && // attempted to build image but got stuck, so started to kill sessions
@@ -215,6 +172,10 @@ const ConfigureJupyterLabView: React.FC = () => {
     buildImage,
   ]);
 
+  const isLoading = useJupyterLabSetupScriptApi(
+    (state) => !hasValue(state.setupScript)
+  );
+
   const showStoppingAllSessionsWarning =
     hasStartedKillingSessions && // attempted to build image but got stuck, so started to kill sessions
     !sessionsKillAllInProgress && // the operation of deleting sessions is done
@@ -224,103 +185,85 @@ const ConfigureJupyterLabView: React.FC = () => {
   return (
     <SettingsViewLayout
       header={
-        <Typography variant="h5" flex={1}>
+        <Typography
+          variant="h5"
+          flex={1}
+          sx={{ paddingBottom: (theme) => theme.spacing(2) }}
+        >
           Configure JupyterLab
         </Typography>
       }
     >
-      <Stack sx={{ marginTop: (theme) => theme.spacing(2) }}>
-        {hasValue(jupyterSetupScript) ? (
-          <>
-            <p className="push-down">
-              You can install JupyterLab extensions using the bash script below.
-            </p>
-            <p className="push-down">
-              For example, you can install the Jupyterlab Code Formatter
-              extension by executing{" "}
-              <Code>pip install jupyterlab_code_formatter</Code>.
-            </p>
+      <Stack sx={{ margin: (theme) => theme.spacing(2, 0, 4) }}>
+        <>
+          <p className="push-down">
+            You can install JupyterLab extensions using the bash script below.
+          </p>
+          <p className="push-down">
+            {`For example, you can install the Jupyterlab Code Formatter
+              extension by executing `}
+            <Code>pip install jupyterlab_code_formatter</Code>.
+          </p>
 
-            <p className="push-down">
-              In addition, you can configure the JupyterLab environment to
-              include settings such as your <Code>git</Code> username and email.
-              <br />
-              <br />
-              <Code>{`git config --global user.name "John Doe"`}</Code>
-              <br />
-              <Code>{`git config --global user.email "john@example.org"`}</Code>
-            </p>
+          <p className="push-down">
+            In addition, you can configure the JupyterLab environment to include
+            settings such as your <Code>git</Code> username and email.
+            <br />
+            <br />
+            <Code>{`git config --global user.name "John Doe"`}</Code>
+            <br />
+            <Code>{`git config --global user.email "john@example.org"`}</Code>
+          </p>
 
-            <div className="push-down">
-              <CodeMirror
-                value={jupyterSetupScript}
-                options={{
-                  mode: "application/x-sh",
-                  theme: "dracula",
-                  lineNumbers: true,
-                  viewportMargin: Infinity,
-                  readOnly: building,
-                }}
-                onBeforeChange={(editor, data, value) => {
-                  setJupyterSetupScript(value);
-                  setAsSaved(false);
-                }}
-              />
-            </div>
+          <div className="push-down">
+            <JupyterLabSetupScript readOnly={building} />
+          </div>
 
-            <LegacyImageBuildLog
-              buildRequestEndpoint={
-                "/catch/api-proxy/api/jupyter-builds/most-recent"
-              }
-              buildsKey="jupyter_image_builds"
-              socketIONamespace={
-                config?.ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE
-              }
-              streamIdentity={"jupyter"}
-              onUpdateBuild={setJupyterEnvironmentBuild}
-              ignoreIncomingLogs={ignoreIncomingLogs}
-              build={jupyterBuild}
-              buildFetchHash={buildFetchHash}
-            />
+          <LegacyImageBuildLog
+            buildRequestEndpoint={
+              "/catch/api-proxy/api/jupyter-builds/most-recent"
+            }
+            buildsKey="jupyter_image_builds"
+            socketIONamespace={
+              config?.ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE
+            }
+            streamIdentity={"jupyter"}
+            onUpdateBuild={setJupyterEnvironmentBuild}
+            ignoreIncomingLogs={ignoreIncomingLogs}
+            build={jupyterBuild}
+            buildFetchHash={buildFetchHash}
+          />
 
-            <Stack
-              sx={{ marginTop: (theme) => theme.spacing(2) }}
-              direction="row"
-              spacing={2}
-            >
+          <Stack
+            sx={{ marginTop: (theme) => theme.spacing(2) }}
+            direction="row"
+            spacing={2}
+          >
+            {!building ? (
               <Button
-                startIcon={<SaveIcon />}
+                disabled={
+                  isLoading || isBuildingImage || hasStartedKillingSessions
+                }
+                startIcon={<MemoryIcon />}
+                color="secondary"
                 variant="contained"
-                onClick={save}
+                onClick={buildImage}
               >
-                {hasUnsavedChanges ? "Save*" : "Save"}
+                Build
               </Button>
-              {!building ? (
-                <Button
-                  disabled={isBuildingImage || hasStartedKillingSessions}
-                  startIcon={<MemoryIcon />}
-                  color="secondary"
-                  variant="contained"
-                  onClick={buildImage}
-                >
-                  Build
-                </Button>
-              ) : (
-                <Button
-                  disabled={isCancellingBuild}
-                  startIcon={<CloseIcon />}
-                  color="secondary"
-                  variant="contained"
-                  onClick={cancelImageBuild}
-                >
-                  Cancel build
-                </Button>
-              )}
-            </Stack>
-          </>
-        ) : (
-          <LinearProgress />
-        )}
+            ) : (
+              <Button
+                disabled={isCancellingBuild}
+                startIcon={<CloseIcon />}
+                color="secondary"
+                variant="contained"
+                onClick={cancelImageBuild}
+              >
+                Cancel build
+              </Button>
+            )}
+          </Stack>
+        </>
       </Stack>
       <SnackBar
         open={showStoppingAllSessionsWarning}

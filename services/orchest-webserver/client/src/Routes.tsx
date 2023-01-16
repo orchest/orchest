@@ -1,6 +1,7 @@
 import React from "react";
 import { Redirect, Route, Switch, useLocation } from "react-router-dom";
 import { ConfigureGitSshView } from "./config-git-ssh-view/ConfigureGitSshView";
+import ConfigureJupyterLabView from "./config-jupyterlab-view/ConfigureJupyterLabView";
 import { EnvironmentsView } from "./environments-view/EnvironmentsView";
 import { JobsView } from "./jobs-view/JobsView";
 import { NotificationSettingsView } from "./notification-settings-view/NotificationSettingsView";
@@ -8,7 +9,6 @@ import PipelineView from "./pipeline-view/PipelineView";
 import { ProjectsView } from "./projects-view/ProjectsView";
 import { getOrderedRoutes, siteMap } from "./routingConfig";
 import { SettingsView } from "./settings-view/SettingsView";
-import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
 import HelpView from "./views/HelpView";
 import JupyterLabView from "./views/JupyterLabView";
 import ManageUsersView from "./views/ManageUsersView";
