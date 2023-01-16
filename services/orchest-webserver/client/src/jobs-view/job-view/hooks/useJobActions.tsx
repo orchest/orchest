@@ -42,7 +42,7 @@ export const useJobActions = () => {
   const triggerJobNow = React.useCallback(async () => {
     if (!uuid) return;
     await triggerScheduledRuns(uuid);
-    fetchPage({ page: 1, pageSize: pageSize || 10 });
+    fetchPage({ page: 1, pageSize: pageSize || 10, jobUuids: [uuid] });
   }, [triggerScheduledRuns, uuid, pageSize, fetchPage]);
 
   return {

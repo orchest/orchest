@@ -1,5 +1,6 @@
 import { JobRun, JobRunsPage, PipelineRunStatus } from "@/types";
 import { join } from "@/utils/path";
+import { prune } from "@/utils/record";
 import { queryArgs } from "@/utils/text";
 import { fetcher } from "@orchest/lib-utils";
 
@@ -14,8 +15,23 @@ export type StatusUpdate = {
 export type JobRunsPageQuery = {
   page: number;
   pageSize: number;
+  projectUuids?: string[];
+  pipelineUuids?: string[];
+  jobUuids?: string[];
+  statuses?: PipelineRunStatus[];
   fuzzyFilter?: string | undefined;
 };
+
+const toQueryParams = (query: JobRunsPageQuery) =>
+  prune({
+    page: query.page,
+    page_size: query.pageSize,
+    fuzzy_filter: query.fuzzyFilter,
+    project_uuid__in: query.projectUuids?.join(","),
+    pipeline_uuid__in: query.pipelineUuids?.join(","),
+    job_uuid__in: query.jobUuids?.join(","),
+    status__in: query.statuses?.join(","),
+  });
 
 export type StepStatusUpdate = StatusUpdate & { stepUuid: string };
 
@@ -25,9 +41,9 @@ export const fetchOne = (jobUuid: string, runUuid: string) =>
 export const fetchAll = (jobUuid: string) =>
   fetcher<JobRun[]>(join(BASE_URL, jobUuid, "pipeline_runs"));
 
-export const fetchPage = (jobUuid: string, pageQuery: JobRunsPageQuery) =>
+export const fetchPage = (pageQuery: JobRunsPageQuery) =>
   fetcher<JobRunsPage>(
-    join(BASE_URL, jobUuid, "pipeline_runs") + "?" + queryArgs(pageQuery)
+    join(BASE_URL, "pipeline_runs") + "?" + queryArgs(toQueryParams(pageQuery))
   );
 
 export const setStatus = ({ jobUuid, runUuid, status }: StatusUpdate) =>

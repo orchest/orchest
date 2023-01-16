@@ -4,6 +4,10 @@ import { useAsync } from "@/hooks/useAsync";
 import React from "react";
 
 export const useJobRunsPage = ({
+  projectUuids,
+  pipelineUuids,
+  jobUuids,
+  statuses,
   fuzzyFilter,
   page,
   pageSize,
@@ -12,14 +16,34 @@ export const useJobRunsPage = ({
   const runs = useJobRunsApi((api) => api.runs);
   const fetchPage = useJobRunsApi((api) => api.fetchPage);
   const { error, run, status } = useAsync();
+  const query: JobRunsPageQuery = React.useMemo(
+    () => ({
+      projectUuids,
+      pipelineUuids,
+      jobUuids,
+      statuses,
+      fuzzyFilter,
+      page,
+      pageSize,
+    }),
+    [
+      projectUuids,
+      pipelineUuids,
+      jobUuids,
+      statuses,
+      fuzzyFilter,
+      page,
+      pageSize,
+    ]
+  );
 
   React.useEffect(() => {
-    run(fetchPage({ fuzzyFilter, page, pageSize })).catch();
-  }, [fetchPage, fuzzyFilter, page, pageSize, run]);
+    run(fetchPage(query)).catch();
+  }, [fetchPage, query, run]);
 
   const refresh = React.useCallback(() => {
-    run(fetchPage.bypass({ fuzzyFilter, page, pageSize })).catch();
-  }, [fetchPage, fuzzyFilter, page, pageSize, run]);
+    run(fetchPage.bypass(query)).catch();
+  }, [fetchPage, query, run]);
 
   return {
     pagination,

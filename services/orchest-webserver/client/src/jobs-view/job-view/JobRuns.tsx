@@ -1,3 +1,4 @@
+import { JobRunsPageQuery } from "@/api/job-runs/jobRunsApi";
 import {
   Accordion,
   AccordionDetails,
@@ -18,16 +19,22 @@ import { usePollPageJobRuns } from "./hooks/usePollJobRuns";
 
 export const JobRuns = () => {
   const jobStatus = useEditJob((state) => state.jobChanges?.status);
+  const jobUuid = useEditJob((state) => state.jobChanges?.uuid);
   const [pageNumber, setPageNumber] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(10);
   const [fuzzyFilter, setFuzzyFilter] = React.useState("");
   const [search, setSearch] = React.useState("");
   const [hasExpandedRow, setHasExpandedRow] = React.useState(false);
-  const { runs, pagination, refresh } = useJobRunsPage({
-    page: pageNumber,
-    pageSize,
-    fuzzyFilter: fuzzyFilter || undefined,
-  });
+  const query: JobRunsPageQuery = React.useMemo(
+    () => ({
+      page: pageNumber,
+      pageSize,
+      jobUuids: jobUuid ? [jobUuid] : undefined,
+      fuzzyFilter: fuzzyFilter || undefined,
+    }),
+    [pageNumber, pageSize, jobUuid, fuzzyFilter]
+  );
+  const { runs, pagination, refresh } = useJobRunsPage(query);
 
   usePollPageJobRuns(refresh, { disabled: hasExpandedRow });
   const pageNumberRef = React.useRef(pageNumber);

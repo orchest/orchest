@@ -1,6 +1,6 @@
-import { defineStoreScope } from "@/store/scoped";
 import { Pagination, PipelineRun, PipelineRunStatus } from "@/types";
 import { memoizeFor, MemoizePending } from "@/utils/promise";
+import create from "zustand";
 import { jobRunsApi, JobRunsPageQuery, StatusUpdate } from "./jobRunsApi";
 
 export type PaginationDetails = Pagination & {
@@ -22,18 +22,13 @@ export type JobRunsApi = {
   /** Fetches a job runs page and updates `runs` and `page`. */
   fetchPage: MemoizePending<(query: JobRunsPageQuery) => Promise<void>>;
   /** Cancels a job run and updates the local state if successful. */
-  cancel: (runUuid: string) => Promise<void>;
+  cancel: (jobUuid: string, runUuid: string) => Promise<void>;
   /** Updates the status of a job run in the back-end. */
   setStatus: (update: StatusUpdate) => Promise<void>;
 };
 
-const create = defineStoreScope({
-  requires: ["jobUuid"],
-  additional: ["runUuid"],
-});
-
 /** A state container for job runs within the active job scope. */
-export const useJobRunsApi = create<JobRunsApi>((set, get) => {
+export const useJobRunsApi = create<JobRunsApi>((set) => {
   const setRunStatus = (
     runs: PipelineRun[],
     runUuid: string,
@@ -49,9 +44,8 @@ export const useJobRunsApi = create<JobRunsApi>((set, get) => {
   return {
     runs: undefined,
     pagination: undefined,
-    active: undefined,
     fetchPage: memoizeFor(1000, async (query) => {
-      const result = await jobRunsApi.fetchPage(get().jobUuid, query);
+      const result = await jobRunsApi.fetchPage(query);
 
       set({
         runs: result.pipeline_runs,
@@ -62,8 +56,8 @@ export const useJobRunsApi = create<JobRunsApi>((set, get) => {
         },
       });
     }),
-    cancel: async (runUuid) => {
-      await jobRunsApi.cancel(get().jobUuid, runUuid);
+    cancel: async (jobUuid, runUuid) => {
+      await jobRunsApi.cancel(jobUuid, runUuid);
 
       updateStatus(runUuid, "ABORTED");
     },
