@@ -166,7 +166,7 @@ def register_views(app: Flask) -> None:
 
     def _deduct_when(response: Response) -> bool:
         # Should use response.ok but we are on an old version of flask.
-        return response.status_code not in [200, 201]
+        return response.status_code not in [200, 201, 302]
 
     @app.route("/login/submit", methods=["POST"])
     @rate_limiter.limit("25 per hour", methods=["POST"], deduct_when=_deduct_when)
