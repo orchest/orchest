@@ -1,5 +1,5 @@
 import { filesApi } from "@/api/files/fileApi";
-import type { PipelineRunStatus } from "@/types";
+import type { PipelineMetaData, PipelineRunStatus } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import { isPipelineFile, UnpackedPath } from "./file";
 import { addLeadingSlash, isDirectory, join, relative } from "./path";
@@ -20,6 +20,10 @@ export const isPipelineRunning = (runStatus?: PipelineRunStatus) =>
 
 export const isPipelineIdling = (runStatus?: PipelineRunStatus) =>
   hasValue(runStatus) && PIPELINE_IDLING_STATES.includes(runStatus);
+
+/** Combines the pipeline & project UUID of the pipeline. */
+export const uniquePipelineId = (pipeline: PipelineMetaData) =>
+  `${pipeline.project_uuid}:${pipeline.uuid}`;
 
 export const projectPathToStepPath = (
   { root, path }: UnpackedPath,
