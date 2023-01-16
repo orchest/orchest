@@ -9,6 +9,7 @@ import { useFetchJobs } from "@/hooks/useFetchJobs";
 import { useFetchPipelines } from "@/hooks/useFetchPipelines";
 import { usePollRunningPipelineRuns } from "@/hooks/usePollRunningPipelineRuns";
 import { useJobRunsPage } from "@/jobs-view/job-view/hooks/useJobRunsPage";
+import Chip from "@mui/material/Chip";
 import Pagination from "@mui/material/Pagination";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -39,6 +40,11 @@ export const AllRunsTab = () => {
           <AccordionSummary>
             <Typography color="text.secondary" variant="subtitle1">
               Interactive runs
+              <Chip
+                size="small"
+                sx={{ marginLeft: 1 }}
+                label={interactiveRuns.length}
+              />
             </Typography>
           </AccordionSummary>
 
@@ -55,6 +61,13 @@ export const AllRunsTab = () => {
         <AccordionSummary>
           <Typography color="text.secondary" variant="subtitle1">
             Job runs
+            {pagination && (
+              <Chip
+                size="small"
+                sx={{ marginLeft: 1 }}
+                label={pagination?.total_items}
+              />
+            )}
           </Typography>
         </AccordionSummary>
 
