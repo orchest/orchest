@@ -25,10 +25,10 @@ export const useEnsureValidPipelineBase = (
 
   const validPipelineUuid = React.useMemo(() => {
     const foundPipelineUuidFromRoute = (pipelines || []).find(
-      (pipeline) => activeProjectUuid === pipeline.uuid
+      (pipeline) => pipelineUuidFromRoute === pipeline.uuid
     )?.uuid;
     return foundPipelineUuidFromRoute || pipeline?.uuid;
-  }, [pipeline?.uuid, activeProjectUuid, pipelines]);
+  }, [pipeline?.uuid, pipelines, pipelineUuidFromRoute]);
 
   const pipelineUuidToOpen =
     validPipelineUuid || pipelines?.find(Boolean)?.uuid;
