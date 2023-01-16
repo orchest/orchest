@@ -17,12 +17,13 @@ export const useFetchActivePipelineJsons = () => {
   const definitions = usePipelineJsonApi((api) => api.pipelines);
   const fetchOne = usePipelineJsonApi((api) => api.fetchOne);
   const pipelines = useFetchActivePipelines();
-  const snapshot = useSnapshotsApi((api) =>
-    snapshotUuid ? api.snapshots?.[snapshotUuid] : undefined
-  );
+
   const fetchSnapshot = useSnapshotsApi((api) => api.fetchOne);
   const activeJob = useFetchActiveJob();
   const snapshotUuid = snapshotUuidFromQuery ?? activeJob?.snapshot_uuid;
+  const snapshot = useSnapshotsApi((api) =>
+    snapshotUuid ? api.snapshots?.[snapshotUuid] : undefined
+  );
   const { run, status } = useAsync();
 
   const refresh = React.useCallback(() => {
@@ -54,7 +55,7 @@ export const useFetchActivePipelineJsons = () => {
   const result: Record<string, PipelineJsonState> = React.useMemo(() => {
     if (snapshot?.pipelines) {
       return Object.fromEntries(
-        Object.values(snapshot?.pipelines).map(({ path, definition }) => [
+        Object.values(snapshot.pipelines).map(({ path, definition }) => [
           path,
           createPipelineJsonState(definition),
         ])
