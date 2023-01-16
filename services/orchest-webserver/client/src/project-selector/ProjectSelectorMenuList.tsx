@@ -89,6 +89,7 @@ export const ProjectSelectorMenuList = ({
       </Box>
       <MenuList
         sx={{
+          width: "100%",
           minHeight: (theme) => `calc(100vh - ${theme.spacing(27)})`,
           flexShrink: 1,
           overflowY: "auto",

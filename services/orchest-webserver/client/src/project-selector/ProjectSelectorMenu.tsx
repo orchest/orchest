@@ -1,15 +1,13 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { ImportProjectButton } from "@/home-view/components/ImportProjectButton";
 import { NewProjectButton } from "@/home-view/components/NewProjectButton";
-import { HomeTabs as HomeTab } from "@/home-view/HomeView";
-import { useCurrentQuery, useNavigate } from "@/hooks/useCustomRoute";
+import { useNavigate } from "@/hooks/useCustomRoute";
 import { useImportUrlFromQueryString } from "@/hooks/useImportUrl";
-import { isProjectPage, siteMap } from "@/routingConfig";
-import Button from "@mui/material/Button";
+import { isProjectPage } from "@/routingConfig";
+import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import React from "react";
-import { GoToExamplesButton } from "./GoToExamplesButton";
 import { ProjectSelectorMenuList } from "./ProjectSelectorMenuList";
 import { ProjectSelectorPopover } from "./ProjectSelectorPopover";
 
@@ -24,26 +22,6 @@ export const ProjectSelectorMenu = ({
 }: ProjectSelectorMenuProps) => {
   const { dispatch } = useProjectsContext();
   const navigate = useNavigate();
-  const { tab } = useCurrentQuery();
-
-  const customNavigation = React.useCallback(
-    (homeTab: HomeTab) => {
-      onClose();
-      const didPathChange =
-        window.location.pathname !== siteMap.home.path ||
-        (window.location.pathname === siteMap.home.path && tab !== homeTab);
-
-      if (didPathChange) navigate({ route: "home", query: { tab: homeTab } });
-    },
-    [navigate, onClose, tab]
-  );
-
-  const goToProjects = () => {
-    customNavigation("projects");
-  };
-  const goToExamples = () => {
-    customNavigation("examples");
-  };
 
   const selectProject = (projectUuid: string) => {
     dispatch({ type: "SET_PROJECT", payload: projectUuid });
@@ -85,35 +63,23 @@ export const ProjectSelectorMenu = ({
         />
         <ImportProjectButton importUrl={importUrl} />
       </Stack>
-      <ProjectSelectorMenuList
-        selectProject={selectProject}
-        onSearchKeydown={(e) => {
-          if (e.key === "ArrowUp") {
-            createButtonRef.current?.focus();
-          }
-        }}
-      />
-      <Stack direction="row" alignItems="center">
-        <Button
-          variant="text"
-          data-test-id="project-drawer/projects"
-          tabIndex={0}
-          sx={{
-            flex: 1,
-            borderRadius: 0,
-            height: (theme) => theme.spacing(5),
-            verticalAlign: "middle",
+      <Stack>
+        <ProjectSelectorMenuList
+          selectProject={selectProject}
+          onSearchKeydown={(e) => {
+            if (e.key === "ArrowUp") {
+              createButtonRef.current?.focus();
+            }
           }}
-          onClick={goToProjects}
-        >
-          Projects page
-        </Button>
-        <Divider
-          orientation="vertical"
-          flexItem
-          sx={{ height: (theme) => theme.spacing(4.5) }}
         />
-        <GoToExamplesButton onClick={goToExamples} />
+
+        <Box
+          component="img"
+          src="/image/logo-wordmark.svg"
+          margin="0 auto"
+          width="112px"
+          paddingY="40px"
+        />
       </Stack>
     </ProjectSelectorPopover>
   );

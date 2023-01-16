@@ -57,7 +57,7 @@ export const ProjectSelectorToggle = ({
         alignItems="flex-start"
         sx={{ flex: 1, paddingLeft: 2, paddingRight: 3 }}
       >
-        <Typography variant="button" color="text.secondary">
+        <Typography variant="button" color="text.secondary" lineHeight={1}>
           PROJECT
         </Typography>
         {hasValue(projectName) && (
@@ -65,7 +65,7 @@ export const ProjectSelectorToggle = ({
             variant="body1"
             title={projectName}
             sx={{
-              ...ellipsis("120px"),
+              ...ellipsis(),
               textTransform: "initial",
               color: (theme) => theme.palette.common.black,
             }}
