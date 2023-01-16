@@ -342,6 +342,10 @@ class PipelineRunsList(Resource):
                 ),
                 "type": str,
             },
+            "sort": {
+                "description": "Either 'oldest' or or 'newest'. Default is 'newest'.",
+                type: str,
+            },
         },
     )
     @api.response(200, "Success", schema.paginated_job_pipeline_runs)
@@ -409,13 +413,20 @@ class PipelineRunsList(Resource):
         job_runs_query = models.NonInteractivePipelineRun.query.options(
             noload(models.NonInteractivePipelineRun.pipeline_steps),
             undefer(models.NonInteractivePipelineRun.env_variables),
-        ).order_by(
-            asc(models.NonInteractivePipelineRun.created_time)
-            if sort == "oldest"
-            else desc(models.NonInteractivePipelineRun.created_time),
-            desc(models.NonInteractivePipelineRun.job_run_index),
-            desc(models.NonInteractivePipelineRun.job_run_pipeline_run_index),
         )
+
+        if sort == "oldest":
+            job_runs_query = job_runs_query.order_by(
+                asc(models.NonInteractivePipelineRun.created_time),
+                asc(models.NonInteractivePipelineRun.job_run_index),
+                asc(models.NonInteractivePipelineRun.job_run_pipeline_run_index),
+            )
+        else:
+            job_runs_query = job_runs_query.order_by(
+                desc(models.NonInteractivePipelineRun.created_time),
+                desc(models.NonInteractivePipelineRun.job_run_index),
+                desc(models.NonInteractivePipelineRun.job_run_pipeline_run_index),
+            )
 
         if project_uuids is not None or project_pipeline_uuids is not None:
             exp = None
