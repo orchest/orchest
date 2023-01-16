@@ -1,8 +1,10 @@
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useFetchJob } from "@/hooks/useFetchJob";
+import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { LogViewer } from "@/pipeline-view/LogViewer";
-import type { LogType } from "@/types";
+import { LogType } from "@/types";
+import { sortPipelineSteps } from "@/utils/pipeline";
 import { filterServices } from "@/utils/webserver-utils";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
@@ -16,36 +18,39 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { usePipelineDataContext } from "../contexts/PipelineDataContext";
-import { usePipelineUiStateContext } from "../contexts/PipelineUiStateContext";
-import { topologicalSort } from "./common";
-import { LogViewerPlaceHolder } from "./LogViewerPlaceHolder";
 
-export const PipelineLogs = () => {
-  const {
-    projectUuid,
-    pipelineUuid,
-    jobUuid,
-    runUuid,
-    isJobRun,
-  } = usePipelineDataContext();
+export type PipelineRunLogsProps = {
+  projectUuid?: string;
+  pipelineUuid?: string;
+  jobUuid?: string;
+  runUuid?: string;
+};
 
-  const {
-    uiState: { steps },
-  } = usePipelineUiStateContext();
+export const PipelineRunLogs = ({
+  projectUuid,
+  pipelineUuid,
+  jobUuid,
+  runUuid,
+}: PipelineRunLogsProps) => {
+  const isJobRun = Boolean(jobUuid);
 
   useSendAnalyticEvent("view:loaded", {
     name: isJobRun ? "/job-run/logs" : "/logs",
   });
 
-  const { job } = useFetchJob(jobUuid);
-  const isQueryArgsComplete = hasValue(pipelineUuid) && hasValue(projectUuid);
+  const { pipelineJson } = useFetchPipelineJson({
+    projectUuid,
+    pipelineUuid,
+    jobUuid,
+    runUuid,
+  });
 
   const sortedSteps = React.useMemo(() => {
-    return topologicalSort(steps);
-  }, [steps]);
+    return sortPipelineSteps(pipelineJson?.steps ?? {});
+  }, [pipelineJson?.steps]);
 
   const { getSession } = useSessionsContext();
+  const { job } = useFetchJob(jobUuid);
 
   const [selectedLog, setSelectedLog] = React.useState<{
     type: LogType;
@@ -54,29 +59,22 @@ export const PipelineLogs = () => {
 
   const session = getSession(pipelineUuid);
 
-  const onClickLog = (uuid: string, type: LogType) => {
+  const onClickLog = (uuid: string, type: LogType) =>
     setSelectedLog({ type, logId: uuid });
-  };
 
-  const hasLoaded = sortedSteps !== undefined && (!jobUuid || job);
+  const hasLoaded = sortedSteps.length > 0;
 
   const services = React.useMemo(() => {
     if (!hasLoaded) return {};
-    let services = {};
 
-    // If there is no job_uuid use the session for
-    // fetch the services
-    if (jobUuid == undefined && session && session.user_services) {
-      services = session.user_services;
+    if (!isJobRun && session && session.user_services) {
+      return filterServices(session.user_services, "interactive");
+    } else if (job?.pipeline_definition?.services) {
+      return filterServices(job.pipeline_definition.services, "noninteractive");
+    } else {
+      return {};
     }
-    // if there is a job_uuid use the job pipeline to
-    // fetch the services.
-    else if (job?.pipeline_definition?.services !== undefined) {
-      services = job.pipeline_definition.services;
-    }
-
-    return filterServices(services, jobUuid ? "noninteractive" : "interactive");
-  }, [hasLoaded, job?.pipeline_definition?.services, jobUuid, session]);
+  }, [hasLoaded, job, isJobRun, session]);
 
   React.useEffect(() => {
     // Preselect first step, or service (if no step exists)
@@ -127,7 +125,7 @@ export const PipelineLogs = () => {
                 <ListSubheader component="div">Step logs</ListSubheader>
               }
             >
-              {sortedSteps.length == 0 && (
+              {sortedSteps.length === 0 && (
                 <ListItem>
                   <ListItemText
                     primary={
@@ -169,7 +167,7 @@ export const PipelineLogs = () => {
                 <ListSubheader component="div">Service logs</ListSubheader>
               }
             >
-              {!session && !job && (
+              {!session && !isJobRun && (
                 <ListItem>
                   <ListItemText
                     primary={
@@ -180,7 +178,7 @@ export const PipelineLogs = () => {
                   />
                 </ListItem>
               )}
-              {(session || job) && Object.keys(services).length === 0 && (
+              {(session || isJobRun) && Object.keys(services).length === 0 && (
                 <ListItem>
                   <ListItemText
                     primary={
@@ -218,7 +216,7 @@ export const PipelineLogs = () => {
               borderBottomRightRadius: (theme) => theme.spacing(1),
             }}
           >
-            {isQueryArgsComplete && selectedLog ? (
+            {selectedLog ? (
               <LogViewer
                 key={selectedLog.logId}
                 pipelineUuid={pipelineUuid}
@@ -239,3 +237,20 @@ export const PipelineLogs = () => {
     </>
   );
 };
+
+export const LogViewerPlaceHolder = () => (
+  <Stack
+    alignItems="center"
+    justifyContent="center"
+    sx={{
+      backgroundColor: (theme) => theme.palette.common.black,
+      width: "100%",
+      height: "100%",
+      color: (theme) => theme.palette.grey[800],
+    }}
+  >
+    <Typography variant="h3" component="span">
+      No logs available
+    </Typography>
+  </Stack>
+);

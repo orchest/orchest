@@ -7,25 +7,36 @@ import { JobRun, PipelineRun } from "@/types";
 import { basename } from "@/utils/path";
 import { isJobRun } from "@/utils/pipeline-run";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
-import Typography from "@mui/material/Typography";
+import Typography, { TypographyProps } from "@mui/material/Typography";
 import React from "react";
-import { RouteLink } from "../RouteLink";
+import { RouteLink, RouteLinkProps } from "../RouteLink";
 
-export type PipelineRunBreadcrumbsProps = { run: PipelineRun };
+export type PipelineRunBreadcrumbsProps = {
+  run: PipelineRun;
+  variant?: TypographyProps["variant"];
+  color?: RouteLinkProps["color"];
+};
 
 export const PipelineRunBreadcrumbs = ({
   run,
+  ...props
 }: PipelineRunBreadcrumbsProps) => {
   if (isJobRun(run)) {
-    return <JobRunBreadcrumbs run={run} />;
+    return <JobRunBreadcrumbs run={run} {...props} />;
   } else {
-    return <InteractiveRunBreadcrumbs run={run} />;
+    return <InteractiveRunBreadcrumbs run={run} {...props} />;
   }
 };
 
-export type JobRunBreadcrumbsProps = { run: JobRun };
+export type JobRunBreadcrumbsProps = PipelineRunBreadcrumbsProps & {
+  run: JobRun;
+};
 
-const JobRunBreadcrumbs = ({ run }: JobRunBreadcrumbsProps) => {
+const JobRunBreadcrumbs = ({
+  run,
+  color = "inherit",
+  variant = "body2",
+}: JobRunBreadcrumbsProps) => {
   const firstJob = useJobsApi((api) =>
     isJobRun(run) ? api.jobs?.[run.job_uuid] : undefined
   );
@@ -62,23 +73,27 @@ const JobRunBreadcrumbs = ({ run }: JobRunBreadcrumbsProps) => {
 
   return (
     <Breadcrumbs>
-      <Typography variant="body2">{projectName}</Typography>
+      <Typography variant={variant}>{projectName}</Typography>
       <RouteLink
         to={pipelineLink}
-        color="inherit"
-        variant="body2"
+        color={color}
+        variant={variant}
         underline="hover"
       >
         {pipelineName}
       </RouteLink>
-      <RouteLink to={jobLink} color="inherit" variant="body2" underline="hover">
+      <RouteLink to={jobLink} color={color} variant={variant} underline="hover">
         {job.name}
       </RouteLink>
     </Breadcrumbs>
   );
 };
 
-const InteractiveRunBreadcrumbs = ({ run }: PipelineRunBreadcrumbsProps) => {
+const InteractiveRunBreadcrumbs = ({
+  run,
+  color = "inherit",
+  variant = "body2",
+}: PipelineRunBreadcrumbsProps) => {
   const project = useProjectsApi((api) => api.projects?.[run.project_uuid]);
   const pipeline = usePipelinesApi((api) =>
     api.find(run.project_uuid, run.pipeline_uuid)
@@ -97,11 +112,13 @@ const InteractiveRunBreadcrumbs = ({ run }: PipelineRunBreadcrumbsProps) => {
 
   return (
     <Breadcrumbs>
-      <Typography variant="body2">{basename(project.path)}</Typography>
+      <Typography variant={variant} color={color}>
+        {basename(project.path)}
+      </Typography>
       <RouteLink
         to={pipelineLink}
-        color="inherit"
-        variant="body2"
+        color={color}
+        variant={variant}
         underline="hover"
       >
         {basename(pipeline.path)}

@@ -1,5 +1,10 @@
 import { filesApi } from "@/api/files/fileApi";
-import type { PipelineMetaData, PipelineRunStatus } from "@/types";
+import type {
+  PipelineMetaData,
+  PipelineRunStatus,
+  StepsDict,
+  StepState,
+} from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import { isPipelineFile, UnpackedPath } from "./file";
 import { addLeadingSlash, isDirectory, join, relative } from "./path";
@@ -68,4 +73,51 @@ export const findPipelineFiles = async (
   return paths
     .filter((value) => hasValue(value))
     .flatMap((value) => value as UnpackedPath);
+};
+/** Sorts the steps of the pipeline in topological order. */
+export const sortPipelineSteps = (steps: StepsDict) => {
+  const sortedStepKeys: string[] = [];
+
+  const conditionalAdd = (step: StepState) => {
+    // add if all parents are already in the sortedStepKeys
+    let parentsAdded = true;
+
+    for (const connection of step.incoming_connections) {
+      if (!sortedStepKeys.includes(connection)) {
+        parentsAdded = false;
+        break;
+      }
+    }
+
+    if (!sortedStepKeys.includes(step.uuid) && parentsAdded) {
+      sortedStepKeys.push(step.uuid);
+    }
+  };
+
+  // Add self and children (breadth first)
+  let addSelfAndChildren = (step: StepState) => {
+    conditionalAdd(step);
+
+    const outgoingConnections = (step as StepState).outgoing_connections || [];
+
+    for (const childStepUuid of outgoingConnections) {
+      let childStep = steps[childStepUuid];
+
+      conditionalAdd(childStep);
+    }
+
+    // Recurse down
+    for (const childStepUUID of outgoingConnections) {
+      addSelfAndChildren(steps[childStepUUID]);
+    }
+  };
+
+  // Find roots
+  for (const step of Object.values(steps)) {
+    if (step.incoming_connections.length == 0) {
+      addSelfAndChildren(step);
+    }
+  }
+
+  return sortedStepKeys.map((stepUUID) => steps[stepUUID]);
 };
