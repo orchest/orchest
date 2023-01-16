@@ -61,13 +61,11 @@ export const AllRunsTab = () => {
         <AccordionSummary>
           <Typography color="text.secondary" variant="subtitle1">
             Job runs
-            {pagination && (
-              <Chip
-                size="small"
-                sx={{ marginLeft: 1 }}
-                label={pagination?.total_items}
-              />
-            )}
+            <Chip
+              size="small"
+              sx={{ marginLeft: 1 }}
+              label={pagination?.total_items ?? 0}
+            />
           </Typography>
         </AccordionSummary>
 
@@ -77,7 +75,7 @@ export const AllRunsTab = () => {
           </Stack>
 
           <Stack alignItems="center" marginTop={2}>
-            {pagination?.total_pages && (
+            {pagination && (
               <Pagination
                 color="primary"
                 count={pagination.total_pages}
