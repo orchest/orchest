@@ -19,6 +19,7 @@ export type JobRunsPageQuery = {
   pipelines?: { projectUuid: string; pipelineUuid: string }[];
   jobUuids?: string[];
   statuses?: PipelineRunStatus[];
+  sort?: "oldest" | "newest";
   fuzzyFilter?: string | undefined;
   /** How many milliseconds old the job run may be at most. */
   maxAge?: number;
@@ -28,6 +29,7 @@ const toQueryParams = (query: JobRunsPageQuery) =>
   prune({
     page: query.page,
     page_size: query.pageSize,
+    sort: query.sort,
     fuzzy_filter: query.fuzzyFilter,
     project_uuid__in: query.projectUuids?.join(","),
     project_pipeline_uuid__in: query.pipelines

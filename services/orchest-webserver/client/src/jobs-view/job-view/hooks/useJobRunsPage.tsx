@@ -12,6 +12,7 @@ export const useJobRunsPage = ({
   page,
   pageSize,
   maxAge,
+  sort,
 }: JobRunsPageQuery) => {
   const pagination = useJobRunsApi((api) => api.pagination);
   const runs = useJobRunsApi((api) => api.runs);
@@ -27,6 +28,7 @@ export const useJobRunsPage = ({
       page,
       pageSize,
       maxAge,
+      sort,
     }),
     [
       projectUuids,
@@ -37,6 +39,7 @@ export const useJobRunsPage = ({
       page,
       pageSize,
       maxAge,
+      sort,
     ]
   );
 

@@ -85,6 +85,7 @@ const useJobRunsFromFilter = (filter: RunFilterState, page: number) => {
       page,
       pageSize: 5,
       maxAge: maxAgeInMilliseconds(filter.maxAge),
+      sort: filter.sort,
       projectUuids: filter.projects.length
         ? filter.projects.map((project) => project.uuid)
         : undefined,
@@ -96,7 +97,14 @@ const useJobRunsFromFilter = (filter: RunFilterState, page: number) => {
         : undefined,
       statuses: filter.statuses.length ? filter.statuses : undefined,
     }),
-    [filter.maxAge, filter.pipelines, filter.projects, filter.statuses, page]
+    [
+      filter.maxAge,
+      filter.pipelines,
+      filter.projects,
+      filter.statuses,
+      filter.sort,
+      page,
+    ]
   );
 
   return useJobRunsPage(query);

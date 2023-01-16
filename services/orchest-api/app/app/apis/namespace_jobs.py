@@ -8,7 +8,7 @@ from celery.contrib.abortable import AbortableAsyncResult
 from croniter import croniter
 from flask import abort, current_app, request
 from flask_restx import Namespace, Resource, marshal, reqparse
-from sqlalchemy import desc, func, or_, tuple_
+from sqlalchemy import asc, desc, func, or_, tuple_
 from sqlalchemy.orm import attributes, joinedload, load_only, noload, undefer
 
 import app.models as models
@@ -358,6 +358,7 @@ class PipelineRunsList(Resource):
         parser.add_argument("job_uuid__in", type=str, action="split")
         parser.add_argument("status__in", type=str, action="split")
         parser.add_argument("created_time__gt", type=str)
+        parser.add_argument("sort", type=str)
 
         args = parser.parse_args()
         page = args.page
@@ -367,6 +368,7 @@ class PipelineRunsList(Resource):
         job_uuids = args.job_uuid__in
         statuses = args.status__in
         created_time__gt = args.created_time__gt
+        sort = args.sort
 
         if project_pipeline_uuids is not None and len(project_pipeline_uuids) % 2 != 0:
             return {
@@ -402,7 +404,9 @@ class PipelineRunsList(Resource):
             noload(models.NonInteractivePipelineRun.pipeline_steps),
             undefer(models.NonInteractivePipelineRun.env_variables),
         ).order_by(
-            desc(models.NonInteractivePipelineRun.created_time),
+            asc(models.NonInteractivePipelineRun.created_time)
+            if sort == "oldest"
+            else desc(models.NonInteractivePipelineRun.created_time),
             desc(models.NonInteractivePipelineRun.job_run_index),
             desc(models.NonInteractivePipelineRun.job_run_pipeline_run_index),
         )
