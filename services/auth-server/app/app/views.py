@@ -16,6 +16,7 @@ from flask import (
     request,
     send_from_directory,
 )
+from flask_limiter import Limiter
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.wrappers import Response as ResponseBase
 
@@ -44,6 +45,9 @@ def _has_all_required_cookies(cookies: Dict) -> bool:
 
 
 def register_views(app: Flask) -> None:
+
+    rate_limiter: Limiter = app.config["rate_limiter"]
+
     @app.after_request
     def add_header(r: Response) -> Response:
         """
@@ -160,11 +164,17 @@ def register_views(app: Flask) -> None:
         elif redirect_type == "server":
             return redirect(url)
 
+    def _deduct_when(response: Response) -> bool:
+        # Should use response.ok but we are on an old version of flask.
+        return response.status_code not in [200, 201, 302]
+
     @app.route("/login/submit", methods=["POST"])
+    @rate_limiter.limit("25 per hour", methods=["POST"], deduct_when=_deduct_when)
     def login() -> Response | Tuple[Response, Literal[401]] | None:
         return handle_login()
 
     @app.route("/login", methods=["POST"])
+    @rate_limiter.limit("25 per hour", methods=["POST"], deduct_when=_deduct_when)
     def login_post() -> Response | Tuple[Response, Literal[401]] | None:
         return handle_login(redirect_type="server")
 
