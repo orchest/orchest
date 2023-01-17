@@ -27,7 +27,7 @@ export const HomeHeader = ({ scrolled }: HomeHeaderProps) => {
         paddingX={2}
         paddingY={1}
       >
-        <Stack direction="row" spacing={2} flex={1}>
+        <Stack direction="row" spacing={2} flex={1} alignItems="center">
           <HomeOutlined fontSize="large" />
           <Typography variant="h4">Home</Typography>
         </Stack>
