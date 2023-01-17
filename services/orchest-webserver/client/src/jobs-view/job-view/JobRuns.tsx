@@ -6,6 +6,7 @@ import {
 } from "@/components/Accordion";
 import { PipelineRunsTable } from "@/components/pipeline-runs/PipelineRunsTable";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useFetchJobRunsPage } from "@/hooks/useFetchJobRunsPage";
 import SearchOutlined from "@mui/icons-material/SearchOutlined";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
@@ -14,7 +15,6 @@ import TablePagination from "@mui/material/TablePagination";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { useEditJob } from "../stores/useEditJob";
-import { useJobRunsPage } from "./hooks/useJobRunsPage";
 import { usePollPageJobRuns } from "./hooks/usePollJobRuns";
 
 export const JobRuns = () => {
@@ -34,17 +34,17 @@ export const JobRuns = () => {
     }),
     [pageNumber, pageSize, jobUuid, fuzzyFilter]
   );
-  const { runs, pagination, refresh } = useJobRunsPage(query);
+  const { runs, pagination, reload } = useFetchJobRunsPage(query);
 
-  usePollPageJobRuns(refresh, { disabled: hasExpandedRow });
+  usePollPageJobRuns(reload, { disabled: hasExpandedRow });
   const pageNumberRef = React.useRef(pageNumber);
   pageNumberRef.current = pageNumber;
 
   const debouncedSearch = useDebounce(search, 250);
 
   React.useEffect(() => {
-    if (pageNumberRef.current === 1) refresh();
-  }, [jobStatus, refresh]);
+    if (pageNumberRef.current === 1) reload();
+  }, [jobStatus, reload]);
 
   React.useEffect(() => {
     setFuzzyFilter((current) => {

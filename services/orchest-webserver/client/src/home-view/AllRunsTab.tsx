@@ -5,11 +5,11 @@ import {
   AccordionSummary,
 } from "@/components/Accordion";
 import { PipelineRunsTable } from "@/components/pipeline-runs/PipelineRunsTable";
+import { useFetchJobRunsPage } from "@/hooks/useFetchJobRunsPage";
 import { useFetchJobs } from "@/hooks/useFetchJobs";
 import { useFetchPipelines } from "@/hooks/useFetchPipelines";
 import { useInterval } from "@/hooks/useInterval";
 import { usePollRunningPipelineRuns } from "@/hooks/usePollRunningPipelineRuns";
-import { useJobRunsPage } from "@/jobs-view/job-view/hooks/useJobRunsPage";
 import { PipelineRunStatus } from "@/types";
 import { SystemStatus } from "@/utils/system-status";
 import Chip from "@mui/material/Chip";
@@ -123,7 +123,7 @@ const usePollJobRunsWithFilter = (filter: RunFilterState, page: number) => {
     ]
   );
 
-  const state = useJobRunsPage(query);
+  const state = useFetchJobRunsPage(query);
 
   useInterval(state.reload, 5000);
 

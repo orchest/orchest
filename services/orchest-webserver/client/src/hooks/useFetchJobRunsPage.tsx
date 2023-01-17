@@ -1,9 +1,9 @@
 import { JobRunsPageQuery } from "@/api/job-runs/jobRunsApi";
 import { useJobRunsApi } from "@/api/job-runs/useJobRunsApi";
-import { useHydrate } from "@/hooks/useHydrate";
 import React from "react";
+import { useHydrate } from "./useHydrate";
 
-export const useJobRunsPage = ({
+export const useFetchJobRunsPage = ({
   projectUuids,
   pipelines,
   jobUuids,
