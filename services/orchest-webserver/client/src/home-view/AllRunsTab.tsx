@@ -7,6 +7,7 @@ import {
 import { PipelineRunsTable } from "@/components/pipeline-runs/PipelineRunsTable";
 import { useFetchJobs } from "@/hooks/useFetchJobs";
 import { useFetchPipelines } from "@/hooks/useFetchPipelines";
+import { useInterval } from "@/hooks/useInterval";
 import { usePollRunningPipelineRuns } from "@/hooks/usePollRunningPipelineRuns";
 import { useJobRunsPage } from "@/jobs-view/job-view/hooks/useJobRunsPage";
 import { PipelineRunStatus } from "@/types";
@@ -31,7 +32,7 @@ export const AllRunsTab = () => {
   const [filter, setFilter] = React.useState<RunFilterState>(DEFAULT_FILTER);
   const interactiveRuns = usePollRunningPipelineRuns();
   const [page, setPage] = React.useState<number>(1);
-  const { runs: jobRuns, pagination } = useJobRunsFromFilter(filter, page);
+  const { runs: jobRuns, pagination } = usePollJobRunsWithFilter(filter, page);
 
   return (
     <Stack spacing={2} minHeight={625} width="100%">
@@ -92,7 +93,7 @@ export const AllRunsTab = () => {
   );
 };
 
-const useJobRunsFromFilter = (filter: RunFilterState, page: number) => {
+const usePollJobRunsWithFilter = (filter: RunFilterState, page: number) => {
   const query: JobRunsPageQuery = React.useMemo(
     () => ({
       page,
@@ -122,7 +123,11 @@ const useJobRunsFromFilter = (filter: RunFilterState, page: number) => {
     ]
   );
 
-  return useJobRunsPage(query);
+  const state = useJobRunsPage(query);
+
+  useInterval(state.reload, 5000);
+
+  return state;
 };
 
 const toPipelineRunStatus = (status: SystemStatus): PipelineRunStatus =>
