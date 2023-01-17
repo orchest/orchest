@@ -1,9 +1,5 @@
-import {
-  PipelineMetaData,
-  PipelineRun,
-  PipelineRunStatus,
-  Project,
-} from "@/types";
+import { PipelineMetaData, PipelineRun, Project } from "@/types";
+import { SystemStatus } from "@/utils/system-status";
 
 export type RunMaxAxe = "all" | "7 days" | "30 days";
 export type RunSortDirection = "newest" | "oldest";
@@ -12,7 +8,7 @@ export type RunFilterState = {
   maxAge: RunMaxAxe;
   projects: Project[];
   pipelines: PipelineMetaData[];
-  statuses: PipelineRunStatus[];
+  statuses: SystemStatus[];
   sort: RunSortDirection;
 };
 

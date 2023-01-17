@@ -29,7 +29,7 @@ export const SystemStatusIcon = ({
   size,
   animate = true,
 }: SystemStatusIconProps) => {
-  if (status === "PENDING" && flavor === "job") {
+  if (status === "SCHEDULED" || (status === "PENDING" && flavor === "job")) {
     return <ScheduleOutlined fontSize={size} />;
   } else if (status === "PENDING" && flavor === "pipeline") {
     return <CircleOutlined fontSize={size} color="action" />;

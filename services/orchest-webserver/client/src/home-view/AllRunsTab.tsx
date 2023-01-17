@@ -9,6 +9,8 @@ import { useFetchJobs } from "@/hooks/useFetchJobs";
 import { useFetchPipelines } from "@/hooks/useFetchPipelines";
 import { usePollRunningPipelineRuns } from "@/hooks/usePollRunningPipelineRuns";
 import { useJobRunsPage } from "@/jobs-view/job-view/hooks/useJobRunsPage";
+import { PipelineRunStatus } from "@/types";
+import { SystemStatus } from "@/utils/system-status";
 import Chip from "@mui/material/Chip";
 import Pagination from "@mui/material/Pagination";
 import Stack from "@mui/material/Stack";
@@ -106,7 +108,9 @@ const useJobRunsFromFilter = (filter: RunFilterState, page: number) => {
             projectUuid: pipeline.project_uuid,
           }))
         : undefined,
-      statuses: filter.statuses.length ? filter.statuses : undefined,
+      statuses: filter.statuses.length
+        ? filter.statuses.map(toPipelineRunStatus)
+        : undefined,
     }),
     [
       filter.maxAge,
@@ -120,3 +124,11 @@ const useJobRunsFromFilter = (filter: RunFilterState, page: number) => {
 
   return useJobRunsPage(query);
 };
+
+const toPipelineRunStatus = (status: SystemStatus): PipelineRunStatus =>
+  status === "SCHEDULED" ||
+  status === "PAUSED" ||
+  status === "DRAFT" ||
+  status === "IDLE"
+    ? "PENDING"
+    : status;

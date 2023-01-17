@@ -1,5 +1,6 @@
-import { PipelineMetaData, PipelineRunStatus, Project } from "@/types";
+import { PipelineMetaData, Project } from "@/types";
 import { omit } from "@/utils/record";
+import { SystemStatus } from "@/utils/system-status";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import React from "react";
@@ -33,8 +34,7 @@ export const RunFilters = ({ onChange }: RunFiltersProps) => {
   const setMaxAge = (maxAge: RunMaxAxe) => updateFilter({ maxAge });
   const setSort = (sort: RunSortDirection) => updateFilter({ sort });
   const setProjects = (projects: Project[]) => updateFilter({ projects });
-  const setStatuses = (statuses: PipelineRunStatus[]) =>
-    updateFilter({ statuses });
+  const setStatuses = (statuses: SystemStatus[]) => updateFilter({ statuses });
   const setPipelines = (pipelines: PipelineMetaData[]) =>
     updateFilter({ pipelines });
   const clear = () => updateFilter(omit(DEFAULT_FILTER, "sort"));

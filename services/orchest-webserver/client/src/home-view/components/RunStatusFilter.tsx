@@ -1,22 +1,22 @@
 import { SystemStatusChip } from "@/components/common/SystemStatusChip";
-import { PipelineRunStatus } from "@/types";
-import { statusTitle } from "@/utils/system-status";
+import { statusTitle, SystemStatus } from "@/utils/system-status";
 import Checkbox from "@mui/material/Checkbox";
 import MenuItem from "@mui/material/MenuItem";
 import React from "react";
 import { MultiFilter } from "./MultiFilter";
 
-const statuses: readonly PipelineRunStatus[] = [
+const statuses: readonly SystemStatus[] = [
   "STARTED",
   "PENDING",
+  "SCHEDULED",
   "SUCCESS",
   "FAILURE",
   "ABORTED",
 ];
 
 export type RunStatusFilterProps = {
-  selected: PipelineRunStatus[];
-  onChange: (statuses: PipelineRunStatus[]) => void;
+  selected: SystemStatus[];
+  onChange: (statuses: SystemStatus[]) => void;
 };
 
 export const RunStatusFilter = ({

@@ -79,11 +79,7 @@ export const JobRuns = () => {
         </Box>
         {pagination && runs && (
           <>
-            <PipelineRunsTable
-              runs={runs}
-              expandable={true}
-              breadcrumbs={true}
-            />
+            <PipelineRunsTable expandable runs={runs} />
             <TablePagination
               rowsPerPageOptions={[5, 10, 25]}
               component="div"
