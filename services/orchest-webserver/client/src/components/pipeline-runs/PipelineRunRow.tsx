@@ -1,6 +1,7 @@
 import { useToggle } from "@/hooks/useToggle";
-import { formatPipelineParams, humanizeDate } from "@/jobs-view/common";
+import { formatPipelineParams } from "@/jobs-view/common";
 import { PipelineRun } from "@/types";
+import { humanizeDate } from "@/utils/date-time";
 import { isJobRun } from "@/utils/pipeline-run";
 import { ChevronRightSharp } from "@mui/icons-material";
 import MoreHorizOutlined from "@mui/icons-material/MoreHorizOutlined";
