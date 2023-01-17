@@ -14,8 +14,11 @@ export type HydrationState = {
 
 /**
  * Calls the hydrate function once and keeps track of its async state.
- * Note: Ensure that the hydrate function is properly memoized.
- * @param hydrate A function that loads data and updates a store.
+ *
+ * Note: Consumers of `reload` function rely on the fact that each time `reload` changes,
+ * it does so because because it now fetches a different item (e.g. with new parameters).
+ * It's therefore recommended to memoize the hydrate function using `React.useCallback` or similar.
+ * @param hydrate An async function that loads data and updates a store.
  */
 export const useHydrate = <H extends () => Promise<unknown>>(
   hydrate: H
@@ -23,7 +26,7 @@ export const useHydrate = <H extends () => Promise<unknown>>(
   const { run, error, status } = useAsync();
 
   const reload = React.useCallback(async () => {
-    await run(hydrate().catch());
+    await run(hydrate()).catch();
   }, [hydrate, run]);
 
   React.useEffect(() => {
