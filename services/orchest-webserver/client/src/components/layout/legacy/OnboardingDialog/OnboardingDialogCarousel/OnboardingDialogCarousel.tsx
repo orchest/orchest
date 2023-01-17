@@ -1,3 +1,4 @@
+import Box from "@mui/material/Box";
 import { styled } from "@mui/material/styles";
 import { AnimatePresence, m } from "framer-motion";
 import React from "react";
@@ -79,7 +80,7 @@ const IndicatorListItem = styled("li")(({ theme }) => ({
   },
 }));
 
-const IndicatorButton = styled("button")<{ isCurrent: boolean }>(
+const IndicatorButton = styled(Box)<{ isCurrent: boolean }>(
   ({ theme, isCurrent }) => ({
     appearance: "none",
     cursor: "pointer",

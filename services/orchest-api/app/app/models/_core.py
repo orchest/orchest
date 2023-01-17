@@ -1293,3 +1293,100 @@ ForeignKeyConstraint(
     [ClusterNode.name],
     ondelete="CASCADE",
 )
+
+
+class GitImport(BaseModel):
+    """Model to persist git imports.
+
+    The persisted data is of real interest only while the FE polls the
+    status during a GUI import, i.e. schema migrations for this model
+    are a bit less constrained than usual.
+    """
+
+    __tablename__ = "git_imports"
+
+    uuid = db.Column(
+        db.String(36), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+
+    # URL from where to fetch the project.
+    url = db.Column(db.String(), nullable=False)
+    # Name that the project should have after importing.
+    requested_name = db.Column(db.String(255), nullable=True)
+
+    project_uuid = db.Column(
+        db.String(36),
+        db.ForeignKey("projects.uuid", ondelete="CASCADE"),
+        # Gets populated later in case of success.
+        nullable=True,
+    )
+
+    status = db.Column(db.String(15), unique=False, nullable=False)
+    # Used to deliver extra information such as error codes in a not so
+    # much schema constrained way. Given that "old" data of this model
+    # doesn't matter migrations can happen easily in case we want to
+    # move to more tailored fields later.
+    result = db.Column(JSONB, nullable=False, server_default="{}")
+
+    def __repr__(self):
+        return f"<GitImport: {self.uuid}>"
+
+
+class AuthUser(BaseModel):
+    """Model to persist a reference to auth users.
+
+    Said reference is used to keep track of ownership of some Orchest
+    entities created by the user, and to delete those upon the deletion
+    of the user record.
+
+    """
+
+    __tablename__ = "auth_users"
+
+    uuid = db.Column(db.String(36), primary_key=True)
+
+
+class GitConfig(BaseModel):
+    """Git config of the users.
+
+    To be injected in contexts which require it.
+    """
+
+    __tablename__ = "git_configs"
+
+    uuid = db.Column(db.String(36), primary_key=True)
+    auth_user_uuid = db.Column(
+        db.String(36),
+        db.ForeignKey("auth_users.uuid", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+        unique=True,
+    )
+    name = db.Column(db.String(), nullable=False)
+    email = db.Column(db.String(), nullable=False)
+
+
+class SSHKey(BaseModel):
+    """SSHKeys of the user.
+
+    To be injected in contexts which require it. Note that this is
+    pretty much an in-db reference, the secret part is stored as a k8s
+    secret.
+    """
+
+    __tablename__ = "ssh_keys"
+
+    uuid = db.Column(db.String(36), primary_key=True)
+    auth_user_uuid = db.Column(
+        db.String(36),
+        db.ForeignKey("auth_users.uuid", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    name = db.Column(db.String(), nullable=False)
+
+    created_time = db.Column(
+        db.DateTime,
+        nullable=False,
+        server_default=text("timezone('utc', now())"),
+    )

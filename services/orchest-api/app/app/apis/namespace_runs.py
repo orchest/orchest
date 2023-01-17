@@ -14,7 +14,6 @@ import app.models as models
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import errors as self_errors
 from app import schema
-from app.celery_app import make_celery
 from app.connections import db
 from app.core import environments, events
 from app.core.pipelines import Pipeline, construct_pipeline
@@ -165,12 +164,12 @@ class AbortPipelineRun(TwoPhaseFunction):
         if not run_uuid:
             return
 
-        celery_app = make_celery(current_app)
-        res = AbortableAsyncResult(run_uuid, app=celery_app)
+        celery = current_app.config["CELERY"]
+        res = AbortableAsyncResult(run_uuid, app=celery)
         # It is responsibility of the task to terminate by reading it's
         # aborted status.
         res.abort()
-        celery_app.control.revoke(run_uuid)
+        celery.control.revoke(run_uuid)
 
 
 class AbortInteractivePipelineRun(TwoPhaseFunction):
@@ -274,7 +273,7 @@ class CreateInteractiveRun(TwoPhaseFunction):
 
         # Create Celery object with the Flask context and construct the
         # kwargs for the job.
-        celery = make_celery(current_app)
+        celery = current_app.config["CELERY"]
         run_config["env_uuid_to_image"] = env_uuid_to_image
         run_config["user_env_variables"] = env_variables
         run_config["session_uuid"] = (

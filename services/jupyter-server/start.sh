@@ -50,6 +50,7 @@ release_lock() {
 }
 
 start_jupyterlab(){
+
     release_lock
     # Don't release the lock again on exit.
     trap - EXIT
@@ -163,5 +164,6 @@ find "$build_path" \
         -o -wholename "$build_path" \
     \) \
     -exec cp -r {} "$userdir_path" \;
+
 
 start_jupyterlab "$@"

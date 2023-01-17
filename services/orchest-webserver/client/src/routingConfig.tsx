@@ -17,6 +17,7 @@ export type RouteName =
   | "settings"
   | "notificationSettings"
   | "configureJupyterLab"
+  | "configureGitSsh"
   | "update"
   | "manageUsers"
   | "help"
@@ -137,6 +138,13 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
     {
       name: "configureJupyterLab",
       path: "/configure-jupyter-lab",
+      root: "/settings",
+      title: getTitle("Configure JupyterLab"),
+      scope: [],
+    },
+    {
+      name: "configureGitSsh",
+      path: "/configure-git-ssh",
       root: "/settings",
       title: getTitle("Configure JupyterLab"),
       scope: [],

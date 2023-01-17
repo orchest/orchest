@@ -76,7 +76,7 @@ export type EnvironmentSpec = Omit<EnvironmentData, "uuid" | "project_uuid">;
 
 export type OrchestConfig = {
   CLOUD: boolean;
-  CLOUD_UNMODIFIABLE_CONFIG_VALUES?: string[] | null;
+  CLOUD_UNMODIFIABLE_CONFIG_VALUES?: (keyof OrchestUserConfig)[] | null;
   ENVIRONMENT_DEFAULTS: EnvironmentSpec;
   FLASK_ENV: string;
   GPU_ENABLED_INSTANCE: boolean;
@@ -159,6 +159,41 @@ export type ScopeParameter = keyof ScopeParameters;
 
 export type TViewPropsWithRequiredQueryArgs<K extends keyof IQueryArgs> = {
   queryArgs?: Omit<IQueryArgs, K> & Required<Pick<IQueryArgs, K>>;
+};
+
+export type GitImportStatus =
+  | "STARTED"
+  | "SUCCESS"
+  | "FAILURE"
+  | "ABORTED"
+  | "PENDING";
+
+export type GitImportError =
+  | "GitImportError"
+  | "GitCloneFailed"
+  | "ProjectWithSameNameExists"
+  | "ProjectNotDiscoveredByWebServer"
+  | "NoAccessRightsOrRepoDoesNotExists";
+
+export type GitImportOperation = {
+  uuid: string;
+  url: string;
+  project_uuid?: string;
+  requested_name: string;
+  result: { error?: GitImportError };
+  status: GitImportStatus;
+};
+
+export type GitConfig = {
+  uuid?: string;
+  name: string;
+  email: string;
+};
+
+export type SshKey = {
+  uuid: string;
+  name: string;
+  created_time: string;
 };
 
 export type Project = {
@@ -438,6 +473,7 @@ export type PipelineState = PipelineMetaData & {
 export type PipelineSettings = {
   auto_eviction?: boolean;
   data_passing_memory_size?: string;
+  max_steps_parallelism?: integer;
 };
 
 export type PipelineJson = {

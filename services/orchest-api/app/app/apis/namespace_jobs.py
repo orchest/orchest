@@ -18,7 +18,6 @@ from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunc
 from app import errors, schema
 from app import types as app_types
 from app.apis.namespace_runs import AbortPipelineRun
-from app.celery_app import make_celery
 from app.connections import db
 from app.core import environments, events
 from app.core.pipelines import Pipeline, construct_pipeline
@@ -760,8 +759,8 @@ class DeleteNonRetainedJobPipelineRuns(TwoPhaseFunction):
         job_uuid: str,
         pipeline_run_uuids: List[str],
     ):
-        celery = make_celery(current_app)
 
+        celery = current_app.config["CELERY"]
         # Delete in batches to have a balance between the number of
         # created tasks and the size of the celery job args. Googling a
         # bit returns some sparse results on possible issues, so an
@@ -993,7 +992,7 @@ class RunJob(TwoPhaseFunction):
             return
 
         # Launch each task through celery.
-        celery = make_celery(current_app)
+        celery = current_app.config["CELERY"]
 
         for task_id, pipeline in tasks_to_launch:
             celery_job_kwargs = {
@@ -1118,7 +1117,7 @@ class AbortJob(TwoPhaseFunction):
     def _collateral(self, project_uuid: str, run_uuids: List[str], **kwargs):
         # Aborts and revokes all pipeline runs and waits for a reply for
         # 1.0s.
-        celery = make_celery(current_app)
+        celery = current_app.config["CELERY"]
         celery.control.revoke(run_uuids, timeout=1.0)
 
         for run_uuid in run_uuids:
@@ -1719,7 +1718,8 @@ class DeleteJobPipelineRun(TwoPhaseFunction):
             "kwargs": celery_job_kwargs,
             "task_id": str(uuid.uuid4()),
         }
-        res = make_celery(current_app).send_task(**task_args)
+        celery = current_app.config["CELERY"]
+        res = celery.send_task(**task_args)
         res.forget()
 
 

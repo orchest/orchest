@@ -1,13 +1,14 @@
 import React from "react";
 import { Redirect, Route, Switch, useLocation } from "react-router-dom";
+import { ConfigureGitSshView } from "./config-git-ssh-view/ConfigureGitSshView";
+import ConfigureJupyterLabView from "./config-jupyterlab-view/ConfigureJupyterLabView";
 import { EnvironmentsView } from "./environments-view/EnvironmentsView";
 import { HomeView } from "./home-view/HomeView";
 import { JobsView } from "./jobs-view/JobsView";
 import { NotificationSettingsView } from "./notification-settings-view/NotificationSettingsView";
 import PipelineView from "./pipeline-view/PipelineView";
 import { getOrderedRoutes, siteMap } from "./routingConfig";
-import SettingsView from "./settings-view/SettingsView";
-import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
+import { SettingsView } from "./settings-view/SettingsView";
 import HelpView from "./views/HelpView";
 import JupyterLabView from "./views/JupyterLabView";
 import ManageUsersView from "./views/ManageUsersView";
@@ -30,6 +31,7 @@ const pathComponentMapping = {
   "/settings": SettingsView,
   "/notification-settings": NotificationSettingsView,
   "/configure-jupyter-lab": ConfigureJupyterLabView,
+  "/configure-git-ssh": ConfigureGitSshView,
   "/update": UpdateView,
   "/manage-users": ManageUsersView,
   "/help": HelpView,

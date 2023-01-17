@@ -1,13 +1,12 @@
-import { BackToOrchestSettingsButton } from "@/components/BackToOrchestSettingsButton";
-import { PageTitle } from "@/components/common/PageTitle";
 import { SectionTitle } from "@/components/common/SectionTitle";
-import { Layout } from "@/components/layout/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
+import { SettingsViewLayout } from "@/settings-view/SettingsViewLayout";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import React from "react";
 import { NotificationEventsForm } from "./NotificationEventsForm";
 import { NotificationSettingsContextProvider } from "./NotificationSettingsContext";
@@ -49,17 +48,19 @@ const ReturnToJobsAlert = () => {
 
 export const NotificationSettingsView = () => {
   return (
-    <Layout>
+    <SettingsViewLayout
+      header={
+        <Typography variant="h5" flex={1}>
+          Notifications
+        </Typography>
+      }
+    >
       <Stack
         direction="column"
         alignItems="flex-start"
         sx={{ maxWidth: "1000px" }}
       >
         <NotificationSettingsContextProvider>
-          <BackToOrchestSettingsButton />
-          <PageTitle sx={{ marginTop: (theme) => theme.spacing(2.5) }}>
-            Notification settings
-          </PageTitle>
           <ReturnToJobsAlert />
           <SectionTitle>Channels</SectionTitle>
           <WebhookList />
@@ -67,6 +68,6 @@ export const NotificationSettingsView = () => {
           <NotificationEventsForm />
         </NotificationSettingsContextProvider>
       </Stack>
-    </Layout>
+    </SettingsViewLayout>
   );
 };

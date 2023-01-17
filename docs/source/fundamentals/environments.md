@@ -49,6 +49,12 @@ Configuration page for an environment in Orchest.
 
 Updated environments will automatically be used in the Pipeline editor and {term}`interactive pipeline runs <interactive (pipeline) run>`.
 
+```{warning}
+🚨 Do not git ignore the content of the `.orchest/environments` directory. This directory
+is needed by the environment build, and the project snapshot taken prior to the build respects
+the `.gitignore` file.
+```
+
 ## Important environment paths
 
 Executed code can access important environment paths:

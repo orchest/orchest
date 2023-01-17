@@ -71,7 +71,7 @@ export const useAsync = <T, E = Error>({
   initialState,
   disableCaching,
 }: AsyncParams<T> = {}) => {
-  const { makeCancelable } = useCancelablePromise();
+  const { makeCancelable, cancelAll } = useCancelablePromise();
   const [{ data, error, status }, dispatch] = React.useReducer<
     AsyncReducer<T, E>
   >(asyncReducer, {
@@ -80,16 +80,23 @@ export const useAsync = <T, E = Error>({
     error: undefined,
     ...initialState,
   });
+  const isPending = React.useRef(false);
 
   const run = React.useCallback(
-    async (promise: Promise<T>): Promise<T | undefined> => {
+    async (promise: Promise<T>, force?: boolean): Promise<T | undefined> => {
+      if (!force && isPending.current) return;
+      if (force && isPending.current) cancelAll();
+
+      isPending.current = true;
       dispatch({ type: "PENDING", disableCaching });
 
       try {
         const data = await makeCancelable(promise);
         dispatch({ type: "RESOLVED", data });
+        isPending.current = false;
         return data;
       } catch (error) {
+        isPending.current = false;
         if (error instanceof PromiseCanceledError) {
           return undefined;
         }
@@ -97,7 +104,7 @@ export const useAsync = <T, E = Error>({
         return Promise.reject(error);
       }
     },
-    [dispatch, disableCaching, makeCancelable]
+    [dispatch, disableCaching, makeCancelable, cancelAll]
   );
 
   const setData = React.useCallback(

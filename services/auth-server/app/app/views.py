@@ -16,11 +16,14 @@ from flask import (
     request,
     send_from_directory,
 )
+from flask_limiter import Limiter
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.wrappers import Response as ResponseBase
 
 from app.connections import db
 from app.models import Token, User
 from app.utils import PathType, _AuthCacheDictionary, get_auth_cache, set_auth_cache
+from config import CONFIG_CLASS
 
 # This auth_cache is shared between requests
 # within the same Flask process
@@ -28,7 +31,23 @@ _auth_cache: _AuthCacheDictionary = {}
 _auth_cache_age: int = 3  # in seconds
 
 
+def _logout(response: ResponseBase) -> None:
+    response.delete_cookie("auth_token", samesite="Lax")
+    response.delete_cookie("auth_username", samesite="Lax")
+    response.delete_cookie("auth_user_uuid", samesite="Lax")
+
+
+def _has_all_required_cookies(cookies: Dict) -> bool:
+    return all(
+        cookie in cookies
+        for cookie in ["auth_token", "auth_username", "auth_user_uuid"]
+    )
+
+
 def register_views(app: Flask) -> None:
+
+    rate_limiter: Limiter = app.config["rate_limiter"]
+
     @app.after_request
     def add_header(r: Response) -> Response:
         """
@@ -58,7 +77,19 @@ def register_views(app: Flask) -> None:
         # If authentication is not enabled then the request is always
         # authenticated (by definition).
         if not app.config["AUTH_ENABLED"]:
+            # Make sure no auth cookies are there if auth mode is not
+            # enabled. This covers an edge case when setting auth mode
+            # from True to False and allows the FE to correctly take
+            # some decision w.r.t. the presence of cookies. The redirect
+            # to login will cause cookies to be cleared in this case.
+            if request.cookies.get("auth_user_uuid"):
+                return False
             return True
+
+        # Force a login to get newly defined cookies for previously
+        # existing sessions.
+        if not _has_all_required_cookies(request.cookies):
+            return False
 
         cookie_token = request.cookies.get("auth_token")
         username = request.cookies.get("auth_username")
@@ -91,9 +122,19 @@ def register_views(app: Flask) -> None:
 
         # Automatically redirect to root if request is authenticated
         if is_authenticated(request) and path == "":
-            return handle_login(redirect_type="server")
+            res = handle_login(redirect_type="server")
+        else:
+            res = serve_static_or_dev(path)
 
-        return serve_static_or_dev(path)
+        # See comment in is_authenticated about AUTH_ENABLED and the
+        # auth_user_uuid.
+        if (
+            isinstance(res, ResponseBase)
+            and not app.config["AUTH_ENABLED"]
+            and request.cookies.get("auth_user_uuid")
+        ):
+            _logout(res)
+        return res
 
     @app.route("/login/admin", methods=["GET"])
     def login_admin() -> Tuple[str, int] | Response:
@@ -114,8 +155,7 @@ def register_views(app: Flask) -> None:
     @app.route("/login/clear", methods=["GET"])
     def logout() -> Response | None:
         resp = redirect_response("/")
-        resp.set_cookie("auth_token", "", samesite="Lax")
-        resp.set_cookie("auth_username", samesite="Lax")
+        _logout(resp)
         return resp
 
     def redirect_response(url: str, redirect_type: str = "server") -> Response:
@@ -124,11 +164,17 @@ def register_views(app: Flask) -> None:
         elif redirect_type == "server":
             return redirect(url)
 
+    def _deduct_when(response: Response) -> bool:
+        # Should use response.ok but we are on an old version of flask.
+        return response.status_code not in [200, 201, 302]
+
     @app.route("/login/submit", methods=["POST"])
+    @rate_limiter.limit("25 per hour", methods=["POST"], deduct_when=_deduct_when)
     def login() -> Response | Tuple[Response, Literal[401]] | None:
         return handle_login()
 
     @app.route("/login", methods=["POST"])
+    @rate_limiter.limit("25 per hour", methods=["POST"], deduct_when=_deduct_when)
     def login_post() -> Response | Tuple[Response, Literal[401]] | None:
         return handle_login(redirect_type="server")
 
@@ -182,9 +228,12 @@ def register_views(app: Flask) -> None:
                     db.session.commit()
 
                     resp = redirect_response(redirect_url, redirect_type)
+                    # Check _has_all_required_cookies if you add new
+                    # cookies.
                     # samesite="Lax" to avoid CSRF attacks.
                     resp.set_cookie("auth_token", token.token, samesite="Lax")
                     resp.set_cookie("auth_username", username, samesite="Lax")
+                    resp.set_cookie("auth_user_uuid", user.uuid, samesite="Lax")
 
                     return resp
 
@@ -212,6 +261,24 @@ def register_views(app: Flask) -> None:
                 elif self_username == to_delete_username:
                     return jsonify({"error": "Deleting own user is not allowed."}), 405
                 else:
+                    resp = requests.delete(
+                        (
+                            f"http://{CONFIG_CLASS.ORCHEST_API_ADDRESS}/api/"
+                            f"auth-users/{user.uuid}"
+                        )
+                    )
+                    if resp.status_code != 200:
+                        return (
+                            jsonify(
+                                {
+                                    "error": (
+                                        "Failed to delete auth-user reference in "
+                                        "orchest-api."
+                                    )
+                                }
+                            ),
+                            500,
+                        )
                     db.session.delete(user)
                     db.session.commit()
                     return ""
@@ -251,6 +318,21 @@ def register_views(app: Flask) -> None:
                 uuid=str(uuid.uuid4()),
             )
 
+            resp = requests.post(
+                f"http://{CONFIG_CLASS.ORCHEST_API_ADDRESS}/api/auth-users/",
+                json={"uuid": user.uuid},
+            )
+            if resp.status_code != 201:
+                return (
+                    jsonify(
+                        {
+                            "error": (
+                                "Failed to create auth-user reference in orchest-api."
+                            )
+                        }
+                    ),
+                    500,
+                )
             db.session.add(user)
             db.session.commit()
             return ""

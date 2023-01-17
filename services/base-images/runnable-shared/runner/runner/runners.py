@@ -71,10 +71,7 @@ class Runner:
             Config.LOGS_PATH.format(pipeline_uuid=self.pipeline_uuid),
         )
         if not os.path.exists(log_dir_path):
-            try:
-                os.makedirs(log_dir_path)
-            except OSError as exc:
-                raise exc
+            os.makedirs(log_dir_path, exist_ok=True)
 
     def log_file_path_not_a_file(self, file_path: str):
         log_file_path = self.get_log_file_path()

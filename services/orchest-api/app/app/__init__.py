@@ -18,6 +18,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, request
 from flask_cors import CORS
 from flask_migrate import Migrate
+from kubernetes import client
 from sqlalchemy import or_
 from sqlalchemy.orm import attributes
 from sqlalchemy_utils import create_database, database_exists
@@ -30,7 +31,8 @@ from app import utils
 from app.apis import blueprint as api
 from app.apis import namespace_ctl
 from app.apis.namespace_jupyter_image_builds import CreateJupyterEnvironmentBuild
-from app.connections import db
+from app.celery_app import make_celery
+from app.connections import db, k8s_core_api
 from app.core.notifications import analytics as api_analytics
 from app.core.scheduler import add_recurring_jobs_to_scheduler
 from app.models import Job, JupyterImageBuild, Setting
@@ -89,6 +91,9 @@ def create_app(
         # Necessary for db migrations.
         Migrate().init_app(app, db)
 
+        with app.app_context():
+            app.config["CELERY"] = make_celery(app, use_backend_db=True)
+
         # NOTE: In this case we want to return ASAP as otherwise the DB
         # might be called (inside this function) before it is migrated.
         if to_migrate_db:
@@ -122,8 +127,8 @@ def create_app(
                 attributes.flag_modified(job, "pipeline_definition")
                 db.session.commit()
 
-    # Keep analytics subscribed to all events of interest.
     with app.app_context():
+        # Keep analytics subscribed to all events of interest.
         api_analytics.upsert_analytics_subscriptions()
 
     # Create a background scheduler (in a daemon thread) for every
@@ -161,6 +166,9 @@ def create_app(
 
     app.logger.info("Creating required directories for Orchest services.")
     create_required_directories()
+
+    with app.app_context():
+        _set_known_hosts_config_map(app)
 
     if register_api:
         # Register blueprints at the end to avoid issues when migrating
@@ -363,3 +371,39 @@ def cleanup():
         config_class=CONFIG_CLASS, use_db=True, be_scheduler=False, register_api=False
     )
     namespace_ctl.cleanup(app)
+
+
+def _set_known_hosts_config_map(app) -> None:
+    app.logger.info(f"Setting {CONFIG_CLASS.KNOWN_HOSTS_CONFIGMAP} config map.")
+    manifest = {
+        "metadata": {"name": CONFIG_CLASS.KNOWN_HOSTS_CONFIGMAP},
+        "data": {"known_hosts": "\n".join(utils.get_known_hosts_list())},
+    }
+    # Idempotent.
+    try:
+        k8s_core_api.read_namespaced_config_map(
+            name=CONFIG_CLASS.KNOWN_HOSTS_CONFIGMAP, namespace=_config.ORCHEST_NAMESPACE
+        )
+        app.logger.info("Config map exists already, patching it.")
+        k8s_core_api.patch_namespaced_config_map(
+            name=CONFIG_CLASS.KNOWN_HOSTS_CONFIGMAP,
+            namespace=_config.ORCHEST_NAMESPACE,
+            body=manifest,
+        )
+    except client.rest.ApiException as e:
+        if e.status != 404:
+            app.logger.error(e)
+            raise e
+
+        app.logger.info("Config map doesn't exist, creating it.")
+        try:
+            k8s_core_api.create_namespaced_config_map(
+                namespace=_config.ORCHEST_NAMESPACE, body=manifest
+            )
+        except client.rest.ApiException as e:
+            # Cover race conditions if multiple orchest-apis are
+            # starting.
+            if e.status != 409:
+                app.logger.error(e)
+                raise e
+    app.logger.info("Set configmap.")
