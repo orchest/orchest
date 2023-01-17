@@ -26,6 +26,7 @@ export const NewProjectButton = React.forwardRef<
       <NewProjectDialog
         open={isDialogOpen}
         onClose={() => toggleDialog(false)}
+        onSubmit={() => toggleDialog(false)}
       />
     </>
   );
