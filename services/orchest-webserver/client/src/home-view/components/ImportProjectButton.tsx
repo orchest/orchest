@@ -42,13 +42,15 @@ export const ImportProjectButton = React.forwardRef<
           importUrl={importUrl}
           onClose={() => toggleDialog(false)}
           onImported={(newProject) => {
+            toggleDialog(false);
+
             if (showSuccessDialog) {
-              toggleDialog(false);
               setImported(newProject);
             } else {
               navigate({
                 route: "pipeline",
                 query: { projectUuid: newProject.uuid },
+                sticky: false,
               });
             }
           }}
