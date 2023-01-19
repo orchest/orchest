@@ -8,7 +8,7 @@ export function useFetchJob(jobUuid: string | undefined) {
   const fetchJob = React.useCallback(() => {
     return fetchOne(jobUuid);
   }, [fetchOne, jobUuid]);
-  const state = useHydrate(fetchJob);
+  const state = useHydrate(fetchJob, { rehydrate: true });
 
   return { job, ...state };
 }

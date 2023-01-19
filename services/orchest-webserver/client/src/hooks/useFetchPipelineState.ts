@@ -12,7 +12,7 @@ export const useFetchPipelineState = (
     if (!projectUuid || !pipelineUuid) return;
     await pipelinesApi.fetchState(projectUuid, pipelineUuid).then(setPipeline);
   }, [projectUuid, pipelineUuid]);
-  const state = useHydrate(fetchState);
+  const state = useHydrate(fetchState, { rehydrate: true });
 
   return { pipeline, ...state };
 };

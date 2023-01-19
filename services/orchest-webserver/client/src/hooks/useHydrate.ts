@@ -12,6 +12,14 @@ export type HydrationState = {
   reload: () => Promise<void>;
 };
 
+export type HydrateOptions = {
+  /**
+   * If true: Run the hydration function each time it updates.
+   * The default behavior is to only run it once.
+   */
+  rehydrate?: boolean;
+};
+
 /**
  * Calls the hydrate function once and keeps track of its async state.
  *
@@ -21,7 +29,8 @@ export type HydrationState = {
  * @param hydrate An async function that loads data and updates a store.
  */
 export const useHydrate = <H extends () => Promise<unknown>>(
-  hydrate: H
+  hydrate: H,
+  options: HydrateOptions = {}
 ): HydrationState => {
   const { run, error, status } = useAsync();
 
@@ -30,10 +39,10 @@ export const useHydrate = <H extends () => Promise<unknown>>(
   }, [hydrate, run]);
 
   React.useEffect(() => {
-    if (status !== "IDLE") return;
+    if (status !== "IDLE" || options.rehydrate) return;
 
     reload();
-  }, [status, reload]);
+  }, [status, options.rehydrate, reload]);
 
   return {
     error,

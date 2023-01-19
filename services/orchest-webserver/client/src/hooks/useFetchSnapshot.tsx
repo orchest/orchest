@@ -10,7 +10,7 @@ export const useFetchSnapshot = (snapshotUuid: string | undefined) => {
   const fetchSnapshot = React.useCallback(() => {
     return fetchOne(snapshotUuid);
   }, [fetchOne, snapshotUuid]);
-  const state = useHydrate(fetchSnapshot);
+  const state = useHydrate(fetchSnapshot, { rehydrate: true });
 
   return { snapshot, ...state };
 };

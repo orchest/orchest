@@ -9,7 +9,7 @@ export const useFetchProjectPipelines = (projectUuid: string | undefined) => {
   const hydrate = React.useCallback(async () => {
     return fetchForProject(projectUuid);
   }, [fetchForProject, projectUuid]);
-  const state = useHydrate(hydrate);
+  const state = useHydrate(hydrate, { rehydrate: true });
 
   const pipelines = React.useMemo(
     () =>

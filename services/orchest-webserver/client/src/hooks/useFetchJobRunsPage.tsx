@@ -44,7 +44,7 @@ export const useFetchJobRunsPage = ({
     ]
   );
 
-  const state = useHydrate(fetchCurrentPage);
+  const state = useHydrate(fetchCurrentPage, { rehydrate: true });
 
   return { pagination, runs, ...state };
 };
