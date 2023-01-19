@@ -39,10 +39,12 @@ export const useHydrate = <H extends () => Promise<unknown>>(
   }, [hydrate, run]);
 
   React.useEffect(() => {
-    if (status !== "IDLE" || options.rehydrate) return;
+    if (status === "IDLE") reload();
+  }, [status, reload]);
 
-    reload();
-  }, [status, options.rehydrate, reload]);
+  React.useEffect(() => {
+    if (options.rehydrate) reload();
+  }, [reload, options.rehydrate]);
 
   return {
     error,
