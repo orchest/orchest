@@ -1,7 +1,7 @@
 import { useGitConfigsApi } from "@/api/git-configs/useGitConfigsApi";
 import { useFetchGitConfigs } from "@/hooks/useFetchGitConfigs";
 import { useFetchSshKeys } from "@/hooks/useFetchSshKeys";
-import { useOpenDialog } from "@/hooks/useOpenDialog";
+import { useToggle } from "@/hooks/useToggle";
 import { useUpdateGitConfig } from "@/hooks/useUpdateGitConfig";
 import { SettingsViewLayout } from "@/settings-view/SettingsViewLayout";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -17,11 +17,7 @@ import { SshKeyList } from "./SshKeyList";
 
 export const ConfigureGitSshView = () => {
   const sshKeys = useGitConfigsApi((state) => state.sshKeys || []);
-  const [
-    isCreateSshKeyDialogOpen,
-    showCreateAddSshKeyDialog,
-    closeCreateAddSshKeyDialog,
-  ] = useOpenDialog();
+  const [isCreateSshKeyDialogOpen, toggleSshKeyDialog] = useToggle();
 
   const [sshKeyUuidToDelete, setSshKeyUuidToDelete] = React.useState<
     string | undefined
@@ -56,13 +52,13 @@ export const ConfigureGitSshView = () => {
           <SshKeyList
             list={sshKeys}
             onDelete={showDeleteSshKeyDialog}
-            onCreate={showCreateAddSshKeyDialog}
+            onCreate={() => toggleSshKeyDialog(true)}
           />
         </Stack>
       </Stack>
       <CreateSshKeyDialog
         isOpen={isCreateSshKeyDialogOpen}
-        close={closeCreateAddSshKeyDialog}
+        close={() => toggleSshKeyDialog(false)}
       />
       <DeleteSshKeyDialog
         sshKey={sshKeyToDelete}
