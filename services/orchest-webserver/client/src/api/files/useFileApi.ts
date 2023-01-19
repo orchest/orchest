@@ -51,7 +51,7 @@ export type FileApi = {
   init: MemoizePending<
     (depth: number, scope: FileScope) => Promise<Record<string, FileMap>>
   >;
-  delete: MemoizePending<(root: FileRoot, path: string) => Promise<void>>;
+  delete: (root: FileRoot, path: string) => Promise<void>;
   move: MemoizePending<(move: UnpackedMove) => Promise<void>>;
   duplicate: MemoizePending<(root: FileRoot, path: string) => Promise<void>>;
   /**
@@ -133,7 +133,7 @@ export const useFileApi = create<FileApi>((set, get) => {
 
       updateRoot(root, (fileMap) => addToFileMap(fileMap, path));
     }),
-    delete: memoizeFor(500, async (root, path) => {
+    delete: async (root, path) => {
       const { projectUuid } = get().scope;
 
       if (!projectUuid) return;
@@ -141,7 +141,7 @@ export const useFileApi = create<FileApi>((set, get) => {
       await filesApi.deleteNode({ projectUuid, root, path });
 
       updateRoot(root, (fileMap) => removeFromFileMap(fileMap, path));
-    }),
+    },
     move: memoizeFor(500, async (move) => {
       const { projectUuid } = get().scope;
 
