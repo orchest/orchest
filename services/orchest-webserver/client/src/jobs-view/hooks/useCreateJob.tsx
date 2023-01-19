@@ -1,9 +1,10 @@
 import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import { RouteLink } from "@/components/RouteLink";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useActivePipeline } from "@/hooks/useActivePipeline";
 import { useAsync } from "@/hooks/useAsync";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useCurrentQuery, useCustomRoute } from "@/hooks/useCustomRoute";
+import { useProjectPipelines } from "@/hooks/useProjectPipelines";
 import { siteMap } from "@/routingConfig";
 import { JobData, PipelineMetaData } from "@/types";
 import { getUniqueName } from "@/utils/getUniqueName";
@@ -20,12 +21,11 @@ type InvalidEnvironmentsErrorProps = {
 const InvalidEnvironmentsError = ({
   invalidPipelines,
 }: InvalidEnvironmentsErrorProps) => {
-  const {
-    state: { pipelines },
-  } = useProjectsContext();
   const { projectUuid } = useCustomRoute();
+  const pipelines = useProjectPipelines(projectUuid);
   const { deletePromptMessage } = useGlobalContext();
   const hasMultiple = invalidPipelines.length > 0;
+
   return (
     <>
       <Typography sx={{ marginBottom: (theme) => theme.spacing(2) }}>
@@ -63,11 +63,11 @@ const InvalidEnvironmentsError = ({
 
 // TODO: replace this with usePipelinesApi using zustand.
 const useFirstBestPipeline = (desired: PipelineMetaData | undefined) => {
-  const {
-    state: { pipelines = [], pipeline },
-  } = useProjectsContext();
+  const { projectUuid } = useCurrentQuery();
+  const activePipeline = useActivePipeline();
+  const projectPipelines = useProjectPipelines(projectUuid);
 
-  return desired || pipeline || pipelines[0];
+  return desired || activePipeline || projectPipelines?.[0];
 };
 
 export const useCreateJob = (desiredPipeline?: PipelineMetaData) => {

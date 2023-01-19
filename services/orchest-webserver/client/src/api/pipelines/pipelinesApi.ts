@@ -18,4 +18,12 @@ const fetchForProject = (projectUuid: string) =>
 const fetchState = (projectUuid: string, pipelineUuid: string) =>
   fetcher<PipelineState>(join(BASE_URL, projectUuid, pipelineUuid));
 
-export const pipelinesApi = { fetchState, fetchAll, fetchForProject };
+const deletePipeline = (projectUuid: string, pipelineUuid: string) =>
+  fetcher(join(BASE_URL, projectUuid, pipelineUuid), { method: "DELETE" });
+
+export const pipelinesApi = {
+  fetchState,
+  fetchAll,
+  fetchForProject,
+  deletePipeline,
+};

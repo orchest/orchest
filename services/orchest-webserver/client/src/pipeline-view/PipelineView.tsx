@@ -2,6 +2,7 @@ import { Layout } from "@/components/layout/Layout";
 import { MainSidePanel } from "@/components/layout/MainSidePanel";
 import ProjectBasedView from "@/components/ProjectBasedView";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useCurrentQuery } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import Stack from "@mui/material/Stack";
@@ -17,9 +18,8 @@ import { SessionsPanel } from "./sessions-panel/SessionsPanel";
 
 const PipelineView = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.pipeline.path });
-  const {
-    state: { pipelineReadOnlyReason, projectUuid },
-  } = useProjectsContext();
+  const { projectUuid } = useCurrentQuery();
+  const { pipelineReadOnlyReason } = useProjectsContext().state;
   const { path } = useRouteMatch();
 
   return (

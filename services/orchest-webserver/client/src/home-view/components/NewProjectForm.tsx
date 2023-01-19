@@ -1,7 +1,6 @@
 import { useProjectsApi } from "@/api/projects/useProjectsApi";
 import { ErrorSummary } from "@/components/common/ErrorSummary";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useNavigate } from "@/hooks/useCustomRoute";
 import { useReviewProjectName } from "@/hooks/useReviewProjectName";
 import Button from "@mui/material/Button";
@@ -14,7 +13,6 @@ export type NewProjectForm = { onCreated?: () => void; onCancel: () => void };
 export const NewProjectForm = ({ onCreated, onCancel }) => {
   const { setAlert } = useGlobalContext();
   const navigate = useNavigate();
-  const { dispatch } = useProjectsContext();
 
   const createProject = useProjectsApi((api) => api.create);
   const [name, setName] = React.useState("");
@@ -26,7 +24,6 @@ export const NewProjectForm = ({ onCreated, onCancel }) => {
     try {
       const newProject = await createProject(name);
 
-      dispatch({ type: "SET_PROJECT", payload: newProject.uuid });
       onCreated?.();
 
       navigate({

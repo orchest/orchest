@@ -1,27 +1,19 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchProjectPipelines } from "@/hooks/useFetchProjectPipelines";
 import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
+import { useOnBrowserTabFocus } from "@/hooks/useOnTabFocus";
 import { withinProjectRoutes } from "@/routingConfig";
 import { hasValue } from "@orchest/lib-utils";
-import React from "react";
-import { useProjectsContext } from "./ProjectsContext";
 
 export const useAutoFetchPipelinesBase = (
   projectUuidFromRoute: string | undefined,
   shouldFetch: boolean
 ) => {
-  const { state, dispatch } = useProjectsContext();
-  const { pipelines, isLoaded } = useFetchProjectPipelines(
-    projectUuidFromRoute === state.projectUuid && shouldFetch
-      ? projectUuidFromRoute
-      : undefined
+  const { pipelines, reload } = useFetchProjectPipelines(
+    projectUuidFromRoute && shouldFetch ? projectUuidFromRoute : undefined
   );
 
-  React.useEffect(() => {
-    if (pipelines && isLoaded) {
-      dispatch({ type: "LOAD_PIPELINES", payload: Object.values(pipelines) });
-    }
-  }, [pipelines, dispatch, isLoaded]);
+  useOnBrowserTabFocus(reload);
 
   return pipelines;
 };

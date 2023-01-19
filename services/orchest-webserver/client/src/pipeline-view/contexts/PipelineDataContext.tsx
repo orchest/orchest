@@ -1,5 +1,6 @@
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useActivePipeline } from "@/hooks/useActivePipeline";
 import { useActiveProject } from "@/hooks/useActiveProject";
 import { StateDispatcher } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -7,6 +8,7 @@ import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { useFetchActivePipelineRun } from "@/hooks/useFetchActivePipelineRun";
 import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
+import { useProjectPipelines } from "@/hooks/useProjectPipelines";
 import { siteMap } from "@/routingConfig";
 import { JobData, PipelineJsonState, PipelineMetaData } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
@@ -54,9 +56,10 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
     navigateTo,
   } = useCustomRoute();
 
-  const {
-    state: { pipeline, pipelines, pipelineReadOnlyReason },
-  } = useProjectsContext();
+  const { pipelineReadOnlyReason } = useProjectsContext().state;
+
+  const pipelines = useProjectPipelines(activeProject?.uuid);
+  const pipeline = useActivePipeline();
 
   // No pipeline found. Editor is frozen and shows "Pipeline not found".
   const disabled = hasValue(pipelines) && pipelines.length === 0;

@@ -5,7 +5,6 @@ import { PageTitle } from "@/components/common/PageTitle";
 import { EnvVarList, EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/layout/Layout";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useCurrentQuery, useNavigate } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -49,7 +48,6 @@ const ProjectSettingsView: React.FC = () => {
     setConfirm,
     state: { hasUnsavedChanges },
   } = useGlobalContext();
-  const { dispatch } = useProjectsContext();
   const projects = useProjectsApi((api) => api.projects);
   const deleteProject = useProjectsApi((api) => api.delete);
   const updateProject = useProjectsApi((api) => api.update);
@@ -96,8 +94,6 @@ const ProjectSettingsView: React.FC = () => {
         onConfirm: async (resolve) => {
           setAsSaved(true);
 
-          dispatch({ type: "SET_PROJECT", payload: undefined });
-
           try {
             await deleteProject(projectUuid);
           } catch (error) {
@@ -122,7 +118,6 @@ const ProjectSettingsView: React.FC = () => {
     );
   }, [
     deleteProject,
-    dispatch,
     navigate,
     projectUuid,
     projects,

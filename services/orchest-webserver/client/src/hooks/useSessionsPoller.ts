@@ -9,6 +9,7 @@ import { OrchestSession } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { matchPath } from "react-router-dom";
+import { useActivePipeline } from "./useActivePipeline";
 import { useCustomRoute } from "./useCustomRoute";
 import { useFetcher } from "./useFetcher";
 import { useInterval } from "./useInterval";
@@ -28,9 +29,8 @@ export const useSessionsPoller = () => {
   const [failures, setFailures] = React.useState(0);
   const { location, pipelineUuid } = useCustomRoute();
   const { dispatch } = useSessionsContext();
-  const {
-    state: { pipeline, pipelineReadOnlyReason },
-  } = useProjectsContext();
+  const pipeline = useActivePipeline();
+  const { pipelineReadOnlyReason } = useProjectsContext().state;
 
   // add the view paths that requires polling sessions
   const matchRooViews = matchPath(location.pathname, [

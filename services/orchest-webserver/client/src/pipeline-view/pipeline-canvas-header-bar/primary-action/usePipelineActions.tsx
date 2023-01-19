@@ -1,5 +1,5 @@
 import { RunStepsType } from "@/api/pipeline-runs/pipelineRunsApi";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useActivePipeline } from "@/hooks/useActivePipeline";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { pickJobChanges } from "@/jobs-view/common";
 import { useCreateJob } from "@/jobs-view/hooks/useCreateJob";
@@ -17,10 +17,7 @@ export const usePipelineActions = () => {
     uiState: { selectedSteps, steps },
     uiStateDispatch,
   } = usePipelineUiStateContext();
-
-  const {
-    state: { pipeline },
-  } = useProjectsContext();
+  const pipeline = useActivePipeline();
 
   const {
     displayStatus,

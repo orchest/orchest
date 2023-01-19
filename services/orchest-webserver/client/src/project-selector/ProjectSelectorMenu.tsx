@@ -1,4 +1,3 @@
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { ImportProjectButton } from "@/home-view/components/ImportProjectButton";
 import { NewProjectButton } from "@/home-view/components/NewProjectButton";
 import { useNavigate } from "@/hooks/useCustomRoute";
@@ -20,12 +19,9 @@ export const ProjectSelectorMenu = ({
   open,
   onClose,
 }: ProjectSelectorMenuProps) => {
-  const { dispatch } = useProjectsContext();
   const navigate = useNavigate();
 
   const selectProject = (projectUuid: string) => {
-    dispatch({ type: "SET_PROJECT", payload: projectUuid });
-
     if (isProjectPage(window.location.pathname)) {
       navigate({ query: { projectUuid } });
     } else {

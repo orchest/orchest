@@ -1,6 +1,5 @@
 import { EnvVarPair } from "@/components/EnvVarList";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useFetchPipelineRun } from "@/hooks/useFetchPipelineRun";
@@ -112,15 +111,12 @@ export const useFetchPipelineSettingsData = ({
     if (hasRegainedFocus && !hasUnsavedChanges) reinitialize();
   }, [hasUnsavedChanges, hasRegainedFocus, reinitialize]);
 
-  const { dispatch } = useProjectsContext();
-
   const initialized = React.useRef(false);
   React.useEffect(() => {
     if (!initialized.current && pipelineUuid && (pipeline || job)) {
       initialized.current = true;
-      dispatch({ type: "UPDATE_PIPELINE", payload: { uuid: pipelineUuid } });
     }
-  }, [job, pipeline, pipelineUuid, initialized, dispatch]);
+  }, [job, pipeline, pipelineUuid, initialized]);
 
   return {
     job,

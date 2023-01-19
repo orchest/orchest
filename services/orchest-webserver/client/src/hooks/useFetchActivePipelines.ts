@@ -1,14 +1,18 @@
 import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import { useSnapshotsApi } from "@/api/snapshots/useSnapshotsApi";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { PipelineMetaData } from "@/types";
 import { basename } from "@/utils/path";
 import React from "react";
 import { useAsync } from "./useAsync";
 import { useCurrentQuery } from "./useCustomRoute";
+import { useProjectPipelines } from "./useProjectPipelines";
 
 export const useFetchActivePipelines = (): PipelineMetaData[] => {
-  const { snapshotUuid: snapshotUuidFromQuery, jobUuid } = useCurrentQuery();
+  const {
+    snapshotUuid: snapshotUuidFromQuery,
+    jobUuid,
+    projectUuid,
+  } = useCurrentQuery();
   const activeJob = useProjectJobsApi((api) =>
     api.jobs?.find(({ uuid }) => uuid === jobUuid)
   );
@@ -17,7 +21,7 @@ export const useFetchActivePipelines = (): PipelineMetaData[] => {
     snapshotUuid ? api.snapshots?.[snapshotUuid] : undefined
   );
   const fetchSnapshot = useSnapshotsApi((api) => api.fetchOne);
-  const { pipelines: projectPipelines } = useProjectsContext().state;
+  const projectPipelines = useProjectPipelines(projectUuid);
   const { run } = useAsync();
 
   React.useEffect(() => {

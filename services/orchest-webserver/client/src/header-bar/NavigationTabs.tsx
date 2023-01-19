@@ -1,4 +1,4 @@
-import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useActivePipeline } from "@/hooks/useActivePipeline";
 import { useActiveProject } from "@/hooks/useActiveProject";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
@@ -139,9 +139,7 @@ export const NavigationTabsBase = ({
 
 export const NavigationTabs = () => {
   const project = useActiveProject();
-  const {
-    state: { pipeline },
-  } = useProjectsContext();
+  const pipeline = useActivePipeline();
   const disabled = !hasValue(project);
 
   const projectMenuItems = React.useMemo(

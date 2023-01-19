@@ -1,7 +1,6 @@
 import { useProjectsApi } from "@/api/projects/useProjectsApi";
 import { IconButton } from "@/components/common/IconButton";
 import { ProjectContextMenu } from "@/components/common/ProjectContextMenu";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useNavigate } from "@/hooks/useCustomRoute";
 import { Project } from "@/types";
 import { paginate } from "@/utils/array";
@@ -22,7 +21,6 @@ const ENTRIES_PER_PAGE = 10;
 export const ProjectTable = () => {
   const navigate = useNavigate();
   const projectMap = useProjectsApi((api) => api.projects);
-  const { dispatch } = useProjectsContext();
   const hasData = projectMap !== undefined;
 
   const [menuAnchorEl, setMenuAnchorEl] = React.useState<HTMLElement>();
@@ -36,8 +34,6 @@ export const ProjectTable = () => {
   );
 
   const openProject = (project: Project) => {
-    dispatch({ type: "SET_PROJECT", payload: project.uuid });
-
     navigate({
       route: "pipeline",
       sticky: false,

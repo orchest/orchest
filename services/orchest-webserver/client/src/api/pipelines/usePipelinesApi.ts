@@ -23,6 +23,13 @@ export type PipelinesApi = {
   fetchForProject: MemoizePending<
     (projectUuid: string | undefined) => Promise<void>
   >;
+  /** Deletes a pipeline from the project */
+  delete: MemoizePending<
+    (
+      projectUuid: string | undefined,
+      pipelineUuid: string | undefined
+    ) => Promise<void>
+  >;
 };
 
 export const usePipelinesApi = create<PipelinesApi>((set, get) => {
@@ -56,6 +63,21 @@ export const usePipelinesApi = create<PipelinesApi>((set, get) => {
       const pipelines = await pipelinesApi.fetchForProject(projectUuid);
 
       set({ pipelines: mergePipelines(pipelines) });
+    }),
+    delete: memoizeFor(500, async (projectUuid, pipelineUuid) => {
+      if (!projectUuid || !pipelineUuid) return;
+
+      await pipelinesApi.deletePipeline(projectUuid, pipelineUuid);
+
+      set(({ pipelines }) => ({
+        pipelines: pipelines?.filter(
+          (pipeline) =>
+            !(
+              pipeline.project_uuid === projectUuid &&
+              pipeline.uuid === pipelineUuid
+            )
+        ),
+      }));
     }),
   };
 });
