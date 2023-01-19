@@ -97,7 +97,7 @@ const usePollJobRunsWithFilter = (filter: RunFilterState, page: number) => {
   const query: JobRunsPageQuery = React.useMemo(
     () => ({
       page,
-      pageSize: 5,
+      pageSize: 8,
       maxAge: maxAgeInMilliseconds(filter.maxAge),
       sort: filter.sort,
       projectUuids: filter.projects.length
