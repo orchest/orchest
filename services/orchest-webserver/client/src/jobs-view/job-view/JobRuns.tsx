@@ -24,7 +24,6 @@ export const JobRuns = () => {
   const [pageSize, setPageSize] = React.useState(10);
   const [fuzzyFilter, setFuzzyFilter] = React.useState("");
   const [search, setSearch] = React.useState("");
-  const [hasExpandedRow, setHasExpandedRow] = React.useState(false);
   const query: JobRunsPageQuery = React.useMemo(
     () => ({
       page: pageNumber,
@@ -36,21 +35,20 @@ export const JobRuns = () => {
   );
   const { runs, pagination, reload } = useFetchJobRunsPage(query);
 
-  usePollPageJobRuns(reload, { disabled: hasExpandedRow });
+  usePollPageJobRuns(reload);
+
   const pageNumberRef = React.useRef(pageNumber);
   pageNumberRef.current = pageNumber;
-
-  const debouncedSearch = useDebounce(search, 250);
 
   React.useEffect(() => {
     if (pageNumberRef.current === 1) reload();
   }, [jobStatus, reload]);
 
+  const debouncedSearch = useDebounce(search, 250);
+
   React.useEffect(() => {
     setFuzzyFilter((current) => {
-      if (current !== debouncedSearch) {
-        setPageNumber(1);
-      }
+      if (current !== debouncedSearch) setPageNumber(1);
       return debouncedSearch;
     });
   }, [debouncedSearch]);
@@ -62,6 +60,7 @@ export const JobRuns = () => {
           Job Runs {pagination && <Chip label={pagination.total_items} />}
         </Typography>
       </AccordionSummary>
+
       <AccordionDetails>
         <Box padding={(theme) => theme.spacing(3, 0)}>
           <OutlinedInput
@@ -77,6 +76,7 @@ export const JobRuns = () => {
             }
           />
         </Box>
+
         {pagination && runs && (
           <>
             <PipelineRunsTable expandable runs={runs} />

@@ -83,12 +83,12 @@ const cancelJob = (jobUuid: string) =>
 
 const resumeCronJob = (jobUuid: string) =>
   fetcher<{ next_scheduled_time: string }>(
-    join(BASE_URL, "cronjobs/resume", jobUuid),
+    join(BASE_URL, "cronjobs", "resume", jobUuid),
     { method: "POST" }
   );
 
 const pauseCronJob = (jobUuid: string) =>
-  fetcher(join(BASE_URL, "cronjobs/pause", jobUuid), { method: "POST" });
+  fetcher(join(BASE_URL, "cronjobs", "pause", jobUuid), { method: "POST" });
 
 const duplicate = (jobUuid: string) =>
   fetcher<JobData>(join(BASE_URL, "duplicate"), {
@@ -99,7 +99,7 @@ const duplicate = (jobUuid: string) =>
 
 const triggerScheduledRuns = (jobUuid: string) =>
   fetcher<{ next_scheduled_time: string }>(
-    join(BASE_URL, jobUuid, "runs/trigger"),
+    join(BASE_URL, jobUuid, "runs", "trigger"),
     { method: "POST" }
   );
 
