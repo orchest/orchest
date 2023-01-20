@@ -1,7 +1,7 @@
 import { SessionToggleButton } from "@/components/SessionToggleButton";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useCurrentQuery, useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchProjectPipelines } from "@/hooks/useFetchProjectPipelines";
 import { siteMap } from "@/routingConfig";
 import { OrchestSession } from "@/types";
 import Box from "@mui/material/Box";
@@ -14,9 +14,8 @@ import React from "react";
 type SessionStatus = OrchestSession["status"] | "";
 
 export const SessionsPanel = () => {
-  const {
-    state: { projectUuid, pipelines = [] },
-  } = useProjectsContext();
+  const { projectUuid } = useCurrentQuery();
+  const { pipelines } = useFetchProjectPipelines(projectUuid);
   const { getSession } = useSessionsContext();
   const { navigateTo } = useCustomRoute();
 
@@ -37,14 +36,19 @@ export const SessionsPanel = () => {
           padding: (theme) => theme.spacing(0, 1, 2, 2),
         }}
       >
-        {pipelines.map((pipeline) => {
+        {Object.values(pipelines).map((pipeline) => {
           const sessionStatus = (getSession(pipeline.uuid)?.status ||
             "") as SessionStatus;
 
           const onClick = (event: React.MouseEvent) => {
             navigateTo(
               siteMap.pipeline.path,
-              { query: { projectUuid, pipelineUuid: pipeline.uuid } },
+              {
+                query: {
+                  projectUuid: pipeline.project_uuid,
+                  pipelineUuid: pipeline.uuid,
+                },
+              },
               event
             );
           };

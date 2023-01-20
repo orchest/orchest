@@ -1,4 +1,4 @@
-import { useFetchExamples } from "@/projects-view/hooks/useFetchExamples";
+import { useFetchExamples } from "@/hooks/useFetchExamples";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import React from "react";

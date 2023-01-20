@@ -4,6 +4,7 @@ import {
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
+import { useActivePipeline } from "@/hooks/useActivePipeline";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { siteMap } from "@/routingConfig";
@@ -18,9 +19,10 @@ export const useAutoStartSession = () => {
     startSession,
   } = useSessionsContext();
   const {
-    state: { pipeline, pipelineReadOnlyReason },
+    state: { pipelineReadOnlyReason },
     dispatch,
   } = useProjectsContext();
+  const pipeline = useActivePipeline();
   const { setAlert, setConfirm } = useGlobalContext();
   const { isInteractive } = usePipelineDataContext();
   const { pipelineUuid: pipelineUuidFromRoute, navigateTo } = useCustomRoute();

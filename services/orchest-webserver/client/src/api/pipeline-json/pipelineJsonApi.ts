@@ -1,4 +1,4 @@
-import { PipelineJson, PipelineState } from "@/types";
+import { PipelineJson, PipelineJsonState } from "@/types";
 import { join } from "@/utils/path";
 import { prune } from "@/utils/record";
 import { queryArgs } from "@/utils/text";
@@ -29,7 +29,9 @@ const fetchOne = ({
     join(BASE_URL, projectUuid, pipelineUuid) +
       "?" +
       queryArgs({ ...queryParams, pipelineRunUuid })
-  ).then((response) => createPipelineState(JSON.parse(response.pipeline_json)));
+  ).then((response) =>
+    createPipelineJsonState(JSON.parse(response.pipeline_json))
+  );
 
 const DEFAULT_SETTINGS: Partial<PipelineJson["settings"]> = {
   auto_eviction: false,
@@ -41,7 +43,9 @@ const DEFAULT_VALUES: Partial<PipelineJson> = {
   services: {},
 };
 
-export const createPipelineState = (json: PipelineJson): PipelineState => {
+export const createPipelineJsonState = (
+  json: PipelineJson
+): PipelineJsonState => {
   const { services = {}, steps = {}, ...data } = {
     ...DEFAULT_VALUES,
     ...prune(json),
@@ -82,7 +86,7 @@ export const createPipelineState = (json: PipelineJson): PipelineState => {
     ...data,
     services,
     steps: setOutgoingConnections(steps),
-  } as PipelineState;
+  } as PipelineJsonState;
 };
 
 export const pipelineJsonApi = { fetchOne };

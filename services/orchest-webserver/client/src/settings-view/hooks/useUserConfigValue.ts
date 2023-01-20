@@ -24,11 +24,11 @@ export const useUserConfigValue = () => {
       return false;
     }
   });
-  const { value, setValue } = textField;
+  const { value, initValue } = textField;
   React.useEffect(() => {
     if (editableConfig && !value)
-      setValue(JSON.stringify(editableConfig, null, 2));
-  }, [editableConfig, value, setValue]);
+      initValue(JSON.stringify(editableConfig, null, 2));
+  }, [editableConfig, value, initValue]);
 
   return textField;
 };

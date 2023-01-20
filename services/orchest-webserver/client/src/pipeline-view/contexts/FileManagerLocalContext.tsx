@@ -1,9 +1,10 @@
 import { useFileApi } from "@/api/files/useFileApi";
+import { pipelinesApi } from "@/api/pipelines/pipelinesApi";
 import { Code } from "@/components/common/Code";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { fetchPipelines } from "@/hooks/useFetchPipelines";
+import { useProjectPipelines } from "@/hooks/useProjectPipelines";
 import { siteMap } from "@/routingConfig";
 import { downloadFile, unpackPath } from "@/utils/file";
 import { Point2D } from "@/utils/geometry";
@@ -51,11 +52,9 @@ export const useFileManagerLocalContext = (): FileManagerLocalContextType =>
 
 export const FileManagerLocalContextProvider: React.FC = ({ children }) => {
   const { setConfirm } = useGlobalContext();
-  const {
-    state: { pipelines = [], pipelineReadOnlyReason },
-    dispatch,
-  } = useProjectsContext();
+  const { pipelineReadOnlyReason } = useProjectsContext().state;
   const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
+  const pipelines = useProjectPipelines(projectUuid);
 
   const selectedFiles = useFileManagerState((state) => state.selected);
   const setSelectedFiles = useFileManagerState((state) => state.setSelected);
@@ -68,7 +67,7 @@ export const FileManagerLocalContextProvider: React.FC = ({ children }) => {
   }, [selectedFiles]);
 
   const pipeline = React.useMemo(() => {
-    return pipelines.find((pipeline) => pipeline.uuid === pipelineUuid);
+    return pipelines?.find((pipeline) => pipeline.uuid === pipelineUuid);
   }, [pipelines, pipelineUuid]);
 
   const [contextMenuPath, setContextMenuPath] = React.useState<string>();
@@ -166,8 +165,7 @@ export const FileManagerLocalContextProvider: React.FC = ({ children }) => {
         );
         // Send a GET request for file discovery
         // to ensure that the pipeline is removed from DB.
-        const updatedPipelines = await fetchPipelines(projectUuid);
-        dispatch({ type: "SET_PIPELINES", payload: updatedPipelines });
+        await pipelinesApi.fetchForProject(projectUuid);
 
         const shouldRedirect = filesToDelete.some((fileToDelete) => {
           const { path } = unpackPath(fileToDelete);
@@ -203,7 +201,6 @@ export const FileManagerLocalContextProvider: React.FC = ({ children }) => {
     selectedFiles,
     selectedFilesWithoutRedundantChildPaths,
     setConfirm,
-    dispatch,
     deleteFile,
     pipeline?.path,
     navigateTo,

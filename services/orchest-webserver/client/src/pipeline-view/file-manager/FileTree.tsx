@@ -1,10 +1,10 @@
 import { useFileApi } from "@/api/files/useFileApi";
+import { usePipelinesApi } from "@/api/pipelines/usePipelinesApi";
 import { Code } from "@/components/common/Code";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { fetchPipelines } from "@/hooks/useFetchPipelines";
+import { useProjectPipelines } from "@/hooks/useProjectPipelines";
 import { siteMap } from "@/routingConfig";
 import { firstAncestor } from "@/utils/element";
 import {
@@ -70,10 +70,6 @@ export const FileTree = React.memo(function FileTreeComponent({
   const { setConfirm, setAlert } = useGlobalContext();
   const { projectUuid, navigateTo } = useCustomRoute();
   const { getSession, stopSession } = useSessionsContext();
-  const {
-    state: { pipelines = [] },
-    dispatch,
-  } = useProjectsContext();
   const selectedFiles = useFileManagerState((state) => state.selected);
   const {
     dragFile,
@@ -85,6 +81,7 @@ export const FileTree = React.memo(function FileTreeComponent({
   const roots = useFileApi((api) => api.roots);
   const reload = useFileApi((api) => api.refresh);
   const moveFile = useFileApi((api) => api.move);
+  const fetchPipelines = usePipelinesApi((api) => api.fetchForProject);
 
   const {
     handleSelect,
@@ -93,12 +90,13 @@ export const FileTree = React.memo(function FileTreeComponent({
   } = useFileManagerLocalContext();
 
   const { openInJupyterLab } = useOpenFile();
+  const pipelines = useProjectPipelines(projectUuid);
 
   const pipelineByPath = React.useCallback(
     (path) => {
       path = isCombinedPath(path) ? unpackPath(path).path : path;
 
-      return pipelines.find(
+      return pipelines?.find(
         (pipeline) => pipeline.path === trimLeadingSlash(path)
       );
     },
@@ -107,7 +105,7 @@ export const FileTree = React.memo(function FileTreeComponent({
 
   const onOpen = React.useCallback(
     (path: string) => {
-      if (!pipelines.length) {
+      if (!pipelines?.length) {
         setAlert(
           "Notice",
           "In order to open a file in JupyterLab, you need to create a pipeline first."
@@ -235,15 +233,12 @@ export const FileTree = React.memo(function FileTreeComponent({
         // to re-discover pipelines from .orchest files
         // before performing a reload.
 
-        dispatch({
-          type: "SET_PIPELINES",
-          payload: await fetchPipelines(projectUuid),
-        });
+        await fetchPipelines(projectUuid).catch();
       }
 
       await reload();
     },
-    [handleMove, reload, dispatch, projectUuid]
+    [handleMove, projectUuid, reload, fetchPipelines]
   );
 
   const checks = React.useMemo(

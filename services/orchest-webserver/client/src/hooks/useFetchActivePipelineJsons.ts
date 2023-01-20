@@ -1,7 +1,7 @@
-import { createPipelineState } from "@/api/pipeline-json/pipelineJsonApi";
+import { createPipelineJsonState } from "@/api/pipeline-json/pipelineJsonApi";
 import { usePipelineJsonApi } from "@/api/pipeline-json/usePipelineJsonApi";
 import { useSnapshotsApi } from "@/api/snapshots/useSnapshotsApi";
-import { PipelineState } from "@/types";
+import { PipelineJsonState } from "@/types";
 import React from "react";
 import { useAsync } from "./useAsync";
 import { useCurrentQuery } from "./useCustomRoute";
@@ -17,16 +17,14 @@ export const useFetchActivePipelineJsons = () => {
   const definitions = usePipelineJsonApi((api) => api.pipelines);
   const fetchOne = usePipelineJsonApi((api) => api.fetchOne);
   const pipelines = useFetchActivePipelines();
-  const snapshots = useSnapshotsApi((api) => api.snapshots);
+
   const fetchSnapshot = useSnapshotsApi((api) => api.fetchOne);
   const activeJob = useFetchActiveJob();
   const snapshotUuid = snapshotUuidFromQuery ?? activeJob?.snapshot_uuid;
+  const snapshot = useSnapshotsApi((api) =>
+    snapshotUuid ? api.snapshots?.[snapshotUuid] : undefined
+  );
   const { run, status } = useAsync();
-
-  const snapshot = React.useMemo(() => {
-    if (!snapshotUuid) return undefined;
-    else return snapshots?.find((snapshot) => snapshot.uuid === snapshotUuid);
-  }, [snapshotUuid, snapshots]);
 
   const refresh = React.useCallback(() => {
     if (!projectUuid) return;
@@ -54,12 +52,12 @@ export const useFetchActivePipelineJsons = () => {
     if (status === "IDLE") refresh();
   }, [refresh, status]);
 
-  const result: Record<string, PipelineState> = React.useMemo(() => {
+  const result: Record<string, PipelineJsonState> = React.useMemo(() => {
     if (snapshot?.pipelines) {
       return Object.fromEntries(
-        Object.values(snapshot?.pipelines).map(({ path, definition }) => [
+        Object.values(snapshot.pipelines).map(({ path, definition }) => [
           path,
-          createPipelineState(definition),
+          createPipelineJsonState(definition),
         ])
       );
     } else if (pipelines) {

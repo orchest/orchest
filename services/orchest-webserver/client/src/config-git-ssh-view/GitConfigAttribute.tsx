@@ -23,14 +23,14 @@ export const GitConfigAttribute = ({
 }: GitConfigAttributeProps) => {
   const {
     value,
-    setValue,
     handleChange,
     isValid,
     isDirty,
+    initValue,
     setAsDirtyOnBlur: handleBlur,
   } = useTextField(GIT_CONFIG_KEYS[name]);
 
-  useInitGitConfigAttribute(name, setValue);
+  useInitGitConfigAttribute(name, initValue);
   const setConfig = useGitConfigsApi((state) => state.setConfig);
   React.useEffect(() => {
     setConfig((config) => ({ ...config, [name]: value }));
@@ -59,7 +59,7 @@ export const GitConfigAttribute = ({
 /** Initialize the attribute when config is just loaded in the store. */
 const useInitGitConfigAttribute = (
   name: keyof Omit<GitConfig, "uuid">,
-  setValue: React.Dispatch<React.SetStateAction<string>>
+  initValue: (value: string) => void
 ) => {
   const initialConfig = useGitConfigsApi(
     (state) => state.config,
@@ -69,8 +69,8 @@ const useInitGitConfigAttribute = (
     }
   );
 
-  const initialValue = initialConfig?.[name];
+  const value = initialConfig?.[name];
   React.useEffect(() => {
-    if (initialValue) setValue(initialValue);
-  }, [setValue, initialValue]);
+    if (value) initValue(value);
+  }, [initValue, value]);
 };

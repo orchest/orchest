@@ -3,6 +3,7 @@ import {
   BUILD_IMAGE_SOLUTION_VIEW,
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
+import { useCurrentQuery } from "@/hooks/useCustomRoute";
 import type { OrchestSession, ReducerActionWithCallback } from "@/types";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
@@ -105,10 +106,8 @@ const initialState: SessionsContextState = {
 
 export const SessionsContextProvider: React.FC = ({ children }) => {
   const { setAlert } = useGlobalContext();
-  const {
-    state: { projectUuid },
-    ensureEnvironmentsAreBuilt,
-  } = useProjectsContext();
+  const { projectUuid } = useCurrentQuery();
+  const { ensureEnvironmentsAreBuilt } = useProjectsContext();
 
   const [state, dispatch] = React.useReducer(reducer, initialState);
 

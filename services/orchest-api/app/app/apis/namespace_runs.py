@@ -44,6 +44,10 @@ class RunList(Resource):
             ).filter_by(project_uuid=request.args.get("project_uuid"))
         elif "project_uuid" in request.args:
             query = query.filter_by(project_uuid=request.args.get("project_uuid"))
+        elif request.args["active"] == "true":
+            active_states = ["STARTED", "PENDING"]
+            expression = models.InteractivePipelineRun.status.in_(active_states)
+            query = query.filter(expression)
 
         runs = query.order_by(nullslast(models.PipelineRun.started_time.desc())).all()
         return {"runs": [run.__dict__ for run in runs]}, 200

@@ -1,8 +1,9 @@
 import { useFileApi } from "@/api/files/useFileApi";
+import { usePipelinesApi } from "@/api/pipelines/usePipelinesApi";
 import { IconButton } from "@/components/common/IconButton";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { fetcher } from "@/utils/fetcher";
+import { useActivePipeline } from "@/hooks/useActivePipeline";
+import { useActiveProject } from "@/hooks/useActiveProject";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import MoreHorizOutlinedIcon from "@mui/icons-material/MoreHorizOutlined"; // cspell:disable-line
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
@@ -14,20 +15,13 @@ import React from "react";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 
-const deletePipeline = (projectUuid: string, pipelineUuid: string) => {
-  return fetcher(`/async/pipelines/${projectUuid}/${pipelineUuid}`, {
-    method: "DELETE",
-  });
-};
-
 export const PipelineMoreOptionsMenu = () => {
   const expand = useFileApi((api) => api.expand);
   const { setConfirm } = useGlobalContext();
   const { isReadOnly } = usePipelineDataContext();
-  const {
-    state: { projectUuid, pipeline },
-    dispatch,
-  } = useProjectsContext();
+  const deletePipeline = usePipelinesApi((api) => api.delete);
+  const pipeline = useActivePipeline();
+  const project = useActiveProject();
 
   const [anchorElement, setAnchorElement] = React.useState<
     Element | undefined
@@ -38,22 +32,14 @@ export const PipelineMoreOptionsMenu = () => {
 
   const showDeletePipelineDialog = () => {
     handleClose();
-    if (isReadOnly || !projectUuid || !pipeline) return;
+    if (isReadOnly || !project || !pipeline) return;
     setConfirm(
       `Delete "${pipeline?.path}"`,
       "Are you sure you want to delete this pipeline?",
       {
         onConfirm: async (resolve) => {
           // TODO: Freeze PipelineEditor until the delete operation is done.
-          await deletePipeline(projectUuid, pipeline.uuid);
-          dispatch((current) => {
-            return {
-              type: "SET_PIPELINES",
-              payload: (current.pipelines || []).filter(
-                (currentPipeline) => currentPipeline.uuid !== pipeline.uuid
-              ),
-            };
-          });
+          await deletePipeline(project.uuid, pipeline.uuid);
 
           await expand("/project-dir", pipeline.path);
 

@@ -7,7 +7,7 @@ import {
 } from "@/hooks/useCustomRoute";
 import { useFetchActiveJob } from "@/hooks/useFetchActiveJob";
 import { useFetchActivePipelineJsons } from "@/hooks/useFetchActivePipelineJsons";
-import { PipelineState, StepData, StepState } from "@/types";
+import { PipelineJsonState, StepData, StepState } from "@/types";
 import { combinePath } from "@/utils/file";
 import { dirname } from "@/utils/path";
 import { stepPathToProjectPath } from "@/utils/pipeline";
@@ -23,7 +23,7 @@ import { useFileManagerState } from "../hooks/useFileManagerState";
 type PipelineUsage = {
   path: string;
   pipelineCwd: string;
-  state: PipelineState;
+  state: PipelineJsonState;
   step: StepData;
 };
 

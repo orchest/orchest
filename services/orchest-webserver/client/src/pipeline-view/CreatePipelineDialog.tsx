@@ -1,7 +1,7 @@
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useProjectPipelines } from "@/hooks/useProjectPipelines";
 import { siteMap } from "@/routingConfig";
 import type { PipelineMetaData } from "@/types";
 import { toValidFilename } from "@/utils/toValidFilename";
@@ -27,7 +27,7 @@ const getValidNewPipelineName = (
   pipelines: Pick<PipelineMetaData, "name">[]
 ) => {
   const largestExistingNumber = pipelines.reduce((existingNumber, pipeline) => {
-    const matches = pipeline.name.match(regExp);
+    const matches = pipeline.name?.match(regExp);
     if (!matches) return existingNumber;
     // if the name is "Main", matches[1] will be undefined, we count it as 0
     // if the name is "Main 123", matches[1] will be " 123", trim it and parse it as Integer
@@ -46,12 +46,9 @@ export const CreatePipelineDialog = ({
   children: (onCreateClick: () => void) => React.ReactNode;
 }) => {
   const { setAlert } = useGlobalContext();
-  const {
-    dispatch,
-    state: { pipelines = [] },
-  } = useProjectsContext();
   const { projectUuid, navigateTo } = useCustomRoute();
   const { run, status } = useAsync<{ pipeline_uuid: string }>();
+  const pipelines = useProjectPipelines(projectUuid);
 
   const [isOpen, setIsOpen] = React.useState(false);
   const onCreateClick = () => setIsOpen(true);
@@ -96,14 +93,6 @@ export const CreatePipelineDialog = ({
         const { pipeline_uuid } = response || {};
         if (!pipeline_uuid) return;
         onClose();
-        dispatch({
-          type: "ADD_PIPELINE",
-          payload: {
-            uuid: pipeline_uuid,
-            name,
-            path,
-          },
-        });
         navigateToPipeline(pipeline_uuid);
       } catch (error) {
         onClose();
@@ -113,7 +102,7 @@ export const CreatePipelineDialog = ({
         );
       }
     },
-    [run, dispatch, projectUuid, setAlert, navigateToPipeline, onClose]
+    [run, projectUuid, setAlert, navigateToPipeline, onClose]
   );
 
   const [newPipeline, setNewPipeline] = React.useState({
@@ -123,7 +112,7 @@ export const CreatePipelineDialog = ({
 
   React.useEffect(() => {
     // create a valid name if name is taken
-    const newPipelineName = getValidNewPipelineName(pipelines);
+    const newPipelineName = getValidNewPipelineName(pipelines ?? []);
     if (newPipelineName && isOpen) {
       setNewPipeline({
         name: newPipelineName,
@@ -132,7 +121,7 @@ export const CreatePipelineDialog = ({
     }
   }, [pipelines, isOpen]);
 
-  const isPathTaken = pipelines.some((row) => row.path === newPipeline.path);
+  const isPathTaken = pipelines?.some((row) => row.path === newPipeline.path);
 
   const pathValidation = isPathTaken
     ? "File already exists"

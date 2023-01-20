@@ -1,4 +1,4 @@
-import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import { useAsync } from "@/hooks/useAsync";
 import { useInterval } from "@/hooks/useInterval";
 import { hasValue } from "@orchest/lib-utils";
@@ -7,8 +7,8 @@ import React from "react";
 /** Keeps job statuses updated in the jobs store by polling the back-end. */
 export const usePollJobsStatus = () => {
   const isFetchingRef = React.useRef(false);
-  const isStoreLoaded = useJobsApi((state) => hasValue(state.jobs));
-  const updateStatus = useJobsApi((state) => state.updateStatus);
+  const isStoreLoaded = useProjectJobsApi((state) => hasValue(state.jobs));
+  const updateStatus = useProjectJobsApi((state) => state.updateStatus);
   const { run, error, status } = useAsync();
 
   isFetchingRef.current = status === "PENDING";

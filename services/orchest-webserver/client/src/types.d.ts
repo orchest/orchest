@@ -152,6 +152,7 @@ export type ScopeParameters = {
   stepUuid: string;
   filePath: string;
   fileRoot: string;
+  tab: string;
 };
 
 export type ScopeParameter = keyof ScopeParameters;
@@ -295,20 +296,23 @@ export type PipelineRun = {
   project_uuid: string;
   pipeline_uuid: string;
   status: PipelineRunStatus;
+  server_time: string;
   started_time: string;
-  finished_time: string;
+  finished_time: string | null;
   pipeline_steps: PipelineRunStep[];
   env_variables: Record<string, string>;
+  parameters: Record<string, Json>;
+};
+
+export type JobRun = PipelineRun & {
   job_uuid: string;
   job_run_index: number;
   job_run_pipeline_run_index: number;
   pipeline_run_index: number;
-  parameters: Record<string, Json>;
-  server_time: string;
 };
 
 export type JobRunsPage = {
-  pipeline_runs: PipelineRun[];
+  pipeline_runs: JobRun[];
   pagination_data: Pagination;
 };
 
@@ -441,18 +445,29 @@ export type Service = {
   order: number;
 };
 
-export type PipelineData = {
-  env_variables: Record<string, string>;
-  path: string;
-  project_uuid: string;
-  status: "READY" | string;
+export type PipelineMetaData = {
+  /**
+   * An identifier for the pipeline.
+   * This identifier is only unique within its project.
+   */
   uuid: string;
+  /**
+   * The UUID of the project which the pipeline belongs to.
+   * Used together with the pipeline UUID to uniquely identify the pipeline.
+   */
+  project_uuid: string;
+  /** The path to the project, relative to the project directory. */
+  path: string;
+  /** A human-readable name for the pipeline (usage is discouraged in favor of `path`). */
+  name: string;
 };
 
-export type PipelineMetaData = {
-  uuid: string;
-  path: string; // Note that this path is relative to `/project-dir:`, i.e. it doesn't have a leading slash
-  name: string;
+export type PipelineStatus = "READY" | PipelineRunStatus;
+
+/** Contains pipeline metadata plus additional state information. */
+export type PipelineState = PipelineMetaData & {
+  env_variables: Record<string, string>;
+  status: PipelineStatus;
 };
 
 export type PipelineSettings = {
@@ -472,7 +487,9 @@ export type PipelineJson = {
   hash?: string;
 };
 
-export type PipelineState = PipelineJson & { steps: Record<string, StepState> };
+export type PipelineJsonState = PipelineJson & {
+  steps: Record<string, StepState>;
+};
 
 export type Example = {
   description: string; // 280 characters

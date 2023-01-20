@@ -1,5 +1,6 @@
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useActivePipeline } from "@/hooks/useActivePipeline";
 import { useActiveProject } from "@/hooks/useActiveProject";
 import { StateDispatcher } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -7,8 +8,9 @@ import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { useFetchActivePipelineRun } from "@/hooks/useFetchActivePipelineRun";
 import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
+import { useProjectPipelines } from "@/hooks/useProjectPipelines";
 import { siteMap } from "@/routingConfig";
-import { JobData, PipelineMetaData, PipelineState } from "@/types";
+import { JobData, PipelineJsonState, PipelineMetaData } from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useIsReadOnly } from "../hooks/useIsReadOnly";
@@ -21,8 +23,8 @@ export type PipelineDataContextType = {
   runUuid?: string;
   jobUuid?: string;
   isReadOnly: boolean;
-  pipelineJson?: PipelineState;
-  setPipelineJson: StateDispatcher<PipelineState>;
+  pipelineJson?: PipelineJsonState;
+  setPipelineJson: StateDispatcher<PipelineJsonState>;
   isFetchingPipelineJson: boolean;
   /** If true, this pipeline is from a job run. */
   isJobRun: boolean;
@@ -54,9 +56,10 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
     navigateTo,
   } = useCustomRoute();
 
-  const {
-    state: { pipeline, pipelines, pipelineReadOnlyReason },
-  } = useProjectsContext();
+  const { pipelineReadOnlyReason } = useProjectsContext().state;
+
+  const pipelines = useProjectPipelines(activeProject?.uuid);
+  const pipeline = useActivePipeline();
 
   // No pipeline found. Editor is frozen and shows "Pipeline not found".
   const disabled = hasValue(pipelines) && pipelines.length === 0;
@@ -124,10 +127,7 @@ export const PipelineDataContextProvider: React.FC = ({ children }) => {
   const isJobRun = hasValue(jobUuid) && hasValue(runUuidFromRoute);
   const isSnapshot = hasValue(jobUuid) && hasValue(snapshotUuid);
   const isInteractive = !isJobRun && !isSnapshot;
-
-  const { job } = useFetchJob({
-    jobUuid: isJobRun || isSnapshot ? jobUuid : undefined,
-  });
+  const { job } = useFetchJob(isJobRun || isSnapshot ? jobUuid : undefined);
 
   return (
     <PipelineDataContext.Provider

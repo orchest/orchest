@@ -4,7 +4,7 @@ import React from "react";
 import { useLocation } from "react-router-dom";
 
 // TODO: Currently this component is not used, we need a proper Page Not Found page
-// atm, wrong path will simply redirect back to ProjectsView
+// atm, wrong path will simply redirect back to home view
 
 const NotFound: React.FC = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.notFound.path });

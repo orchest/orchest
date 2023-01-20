@@ -3,6 +3,7 @@ import {
   AccordionDetails,
   AccordionSummary,
 } from "@/components/Accordion";
+import { useToggle } from "@/hooks/useToggle";
 import { LoadParametersDialog } from "@/jobs-view/job-view/LoadParametersDialog";
 import UploadIcon from "@mui/icons-material/Upload";
 import Button from "@mui/material/Button";
@@ -22,17 +23,14 @@ export const JobParameters = () => {
   }, [isReadOnly]);
   const pipelineUuid = useEditJob((state) => state.jobChanges?.pipeline_uuid);
 
-  const [
-    isLoadParametersDialogOpen,
-    setIsLoadParametersDialogOpen,
-  ] = React.useState<boolean>(false);
+  const [isLoadParametersDialogOpen, toggleLoadParametersDialog] = useToggle();
 
   const showLoadParametersDialog = () => {
-    setIsLoadParametersDialogOpen(true);
+    toggleLoadParametersDialog(true);
   };
 
   const closeLoadParametersDialog = () => {
-    setIsLoadParametersDialogOpen(false);
+    toggleLoadParametersDialog(false);
   };
 
   const { readParameterStrategyFile } = useLoadParameterStrategy();

@@ -17,16 +17,16 @@ export const ProjectSelectorPopover = ({
       onClose={onClose}
       anchorReference="anchorPosition"
       marginThreshold={0}
-      anchorPosition={{ top: HEADER_BAR_HEIGHT, left: 0 }}
+      anchorPosition={{ top: 0, left: 0 }}
       TransitionComponent={Fade}
       PaperProps={{
         sx: {
-          minHeight: (theme) => `calc(100vh - ${theme.spacing(7)})`,
-          maxHeight: (theme) => `calc(100vh - ${theme.spacing(7)})`,
+          maxHeight: "100vh",
+          minHeight: "100vh",
           overflow: "hidden",
           width: (theme) => theme.spacing(40),
           borderRadius: 0,
-          position: "relative",
+          position: "absolute",
           display: "flex",
           flexDirection: "column",
         },

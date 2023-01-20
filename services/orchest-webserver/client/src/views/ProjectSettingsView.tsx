@@ -5,9 +5,8 @@ import { PageTitle } from "@/components/common/PageTitle";
 import { EnvVarList, EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/layout/Layout";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCancelableFetch } from "@/hooks/useCancelablePromise";
-import { useCustomRoute, useNavigate } from "@/hooks/useCustomRoute";
+import { useCurrentQuery, useNavigate } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { RouteName, siteMap } from "@/routingConfig";
 import { Project } from "@/types";
@@ -49,18 +48,19 @@ const ProjectSettingsView: React.FC = () => {
     setConfirm,
     state: { hasUnsavedChanges },
   } = useGlobalContext();
-  const { dispatch } = useProjectsContext();
   const projects = useProjectsApi((api) => api.projects);
   const deleteProject = useProjectsApi((api) => api.delete);
   const updateProject = useProjectsApi((api) => api.update);
   const { cancelableFetch } = useCancelableFetch();
-  const { navigateTo, projectUuid } = useCustomRoute();
+  const { projectUuid } = useCurrentQuery();
   const [envVariables, setEnvVariables] = React.useState<EnvVarPair[]>();
   const [fatalError, setFatalError] = React.useState<unknown>();
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    if (fatalError) navigate({ route: "projects" });
+    if (fatalError) {
+      navigate({ route: "home", query: { tab: "projects" }, sticky: false });
+    }
   }, [fatalError, navigate]);
 
   const setUnsavedEnvVariables = React.useCallback(
@@ -73,7 +73,12 @@ const ProjectSettingsView: React.FC = () => {
   const [state, setState] = React.useState<ProjectSettingsState>(initialState);
 
   const returnToProjects = (event: React.MouseEvent) =>
-    navigateTo(siteMap.projects.path, undefined, event);
+    navigate({
+      route: "home",
+      query: { tab: "projects" },
+      sticky: false,
+      event,
+    });
 
   const deleteWithConfirm = React.useCallback(() => {
     if (!projectUuid) return;
@@ -89,8 +94,6 @@ const ProjectSettingsView: React.FC = () => {
         onConfirm: async (resolve) => {
           setAsSaved(true);
 
-          dispatch({ type: "SET_PROJECT", payload: undefined });
-
           try {
             await deleteProject(projectUuid);
           } catch (error) {
@@ -100,7 +103,11 @@ const ProjectSettingsView: React.FC = () => {
             );
           }
 
-          navigateTo(siteMap.projects.path);
+          navigate({
+            route: "home",
+            query: { tab: "projects" },
+            sticky: false,
+          });
           resolve(true);
           return true;
         },
@@ -111,8 +118,7 @@ const ProjectSettingsView: React.FC = () => {
     );
   }, [
     deleteProject,
-    dispatch,
-    navigateTo,
+    navigate,
     projectUuid,
     projects,
     setAlert,

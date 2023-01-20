@@ -1,9 +1,10 @@
 import { Code } from "@/components/common/Code";
 import { OrchestFileIcon } from "@/components/common/icons/OrchestFileIcon";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
+import { useCurrentQuery } from "@/hooks/useCustomRoute";
 import { useFirstRender } from "@/hooks/useFirstRender";
+import { useProjectPipelines } from "@/hooks/useProjectPipelines";
 import TreeItem, {
   treeItemClasses,
   TreeItemProps,
@@ -59,9 +60,8 @@ export const FileTreeItem = ({
   ...other
 }: FileTreeItemProps) => {
   const { setIsDragging, setDragFile } = useFileManagerContext();
-  const {
-    state: { pipelines = [] },
-  } = useProjectsContext();
+  const { projectUuid } = useCurrentQuery();
+  const pipelines = useProjectPipelines(projectUuid);
   const { setConfirm } = useGlobalContext();
   const { getSession, stopSession } = useSessionsContext();
   const selectedFiles = useFileManagerState((state) => state.selected);
@@ -117,7 +117,7 @@ export const FileTreeItem = ({
 
           if (cumulativeDrag.current.drag > DRAG_THRESHOLD) {
             const filePathRelativeToProjectDir = cleanFilePath(path);
-            const foundPipeline = pipelines.find(
+            const foundPipeline = pipelines?.find(
               (pipeline) => pipeline.path === filePathRelativeToProjectDir
             );
             const session = getSession(foundPipeline?.uuid);

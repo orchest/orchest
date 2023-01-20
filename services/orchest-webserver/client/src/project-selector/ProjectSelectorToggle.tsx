@@ -2,9 +2,7 @@ import { useActiveProject } from "@/hooks/useActiveProject";
 import { isProjectPage } from "@/routingConfig";
 import { ellipsis } from "@/utils/styles";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import { alpha } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
@@ -35,7 +33,7 @@ export const ProjectSelectorToggle = ({
       id="navigation-toggle"
       sx={{
         height: (theme) => theme.spacing(7),
-        width: (theme) => theme.spacing(32),
+        minWidth: "130px",
         borderRadius: 0,
         padding: 0,
         justifyContent: "flex-start",
@@ -53,38 +51,21 @@ export const ProjectSelectorToggle = ({
       }}
       disableRipple
     >
-      <Box
-        component="img"
-        src="/image/logo.svg"
-        data-test-id="orchest-logo"
-        sx={{
-          width: (theme) => theme.spacing(3.25),
-          height: (theme) => theme.spacing(3.25),
-          margin: (theme) => theme.spacing(0, 2),
-        }}
-      />
       <Stack
         direction="column"
         justifyContent="center"
         alignItems="flex-start"
-        sx={{ flex: 1 }}
+        sx={{ flex: 1, paddingLeft: 2, paddingRight: 3 }}
       >
-        <Typography
-          variant="caption"
-          sx={{
-            color: (theme) => theme.palette.text.secondary,
-            fontWeight: (theme) => theme.typography.fontWeightMedium,
-            lineHeight: 1,
-          }}
-        >
-          {projectName ? "PROJECT" : "CHOOSE PROJECT"}
+        <Typography variant="button" color="text.secondary" lineHeight={1}>
+          PROJECT
         </Typography>
         {hasValue(projectName) && (
           <Typography
             variant="body1"
             title={projectName}
             sx={{
-              ...ellipsis((theme) => theme.spacing(20.5)),
+              ...ellipsis(),
               textTransform: "initial",
               color: (theme) => theme.palette.common.black,
             }}
@@ -98,10 +79,6 @@ export const ProjectSelectorToggle = ({
           marginRight: (theme) => theme.spacing(1),
           color: (theme) => theme.palette.action.active,
         }}
-      />
-      <Divider
-        orientation="vertical"
-        sx={{ height: (theme) => theme.spacing(4.5) }}
       />
     </Button>
   );

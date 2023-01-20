@@ -1,5 +1,5 @@
 import { Example } from "@/types";
-import { memoizeFor, MemoizePending } from "@/utils/promise";
+import { memoized, MemoizePending } from "@/utils/promise";
 import create from "zustand";
 import { examplesApi } from "./examplesApi";
 
@@ -11,7 +11,7 @@ export type ExamplesApi = {
 export const useExamplesApi = create<ExamplesApi>((set) => {
   return {
     examples: undefined,
-    fetchAll: memoizeFor(500, async () => {
+    fetchAll: memoized(async () => {
       const examples = await examplesApi.fetchAll();
 
       set({ examples });

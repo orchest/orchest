@@ -16,6 +16,7 @@ export type SystemStatus =
   | "PAUSED"
   | "ABORTED"
   | "SUCCESS"
+  | "SCHEDULED"
   | "FAILURE";
 
 export type StatusFlavor = "job" | "pipeline" | "build";
@@ -28,7 +29,10 @@ export const hasEnded = (status: SystemStatus) =>
 export const statusTitle = (status: SystemStatus, flavor: StatusFlavor) => {
   if (status === "IDLE") {
     return "Ready";
-  } else if (status === "PENDING" && flavor === "job") {
+  } else if (
+    status === "SCHEDULED" ||
+    (status === "PENDING" && flavor === "job")
+  ) {
     return "Scheduled";
   } else if (status === "PENDING" && flavor !== "pipeline") {
     return "Waiting";

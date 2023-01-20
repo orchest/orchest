@@ -1,5 +1,5 @@
-import { createPipelineState } from "@/api/pipeline-json/pipelineJsonApi";
-import { PipelineState } from "@/types";
+import { createPipelineJsonState } from "@/api/pipeline-json/pipelineJsonApi";
+import { PipelineJsonState } from "@/types";
 import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
@@ -30,7 +30,7 @@ export const fetchPipelineJson = (
     pipeline_json: string;
     success: boolean;
   }>(url).then((response) =>
-    createPipelineState(JSON.parse(response.pipeline_json))
+    createPipelineJsonState(JSON.parse(response.pipeline_json))
   );
 };
 
@@ -69,23 +69,19 @@ export const useFetchPipelineJson = (
 
   const { data, setData, fetchData, status, error } = useFetcher<
     PipelineJsonResponse,
-    PipelineState
+    PipelineJsonState
   >(pipelineJsonUrl, {
     transform: (response) =>
-      createPipelineState(JSON.parse(response.pipeline_json)),
+      createPipelineJsonState(JSON.parse(response.pipeline_json)),
     revalidateOnFocus,
   });
 
-  const { fetchSnapshot, snapshot } = useFetchSnapshot();
-
-  React.useEffect(() => {
-    if (pipelineUuid && snapshotUuid) fetchSnapshot(snapshotUuid);
-  }, [snapshotUuid, pipelineUuid, fetchSnapshot]);
+  const { snapshot } = useFetchSnapshot(snapshotUuid);
 
   const pipelineJsonInSnapshot = React.useMemo(() => {
     if (snapshot?.project_uuid !== projectUuid || !pipelineUuid) return;
     const json = snapshot?.pipelines[pipelineUuid]?.definition;
-    return json ? createPipelineState(json) : undefined;
+    return json ? createPipelineJsonState(json) : undefined;
   }, [snapshot, pipelineUuid, projectUuid]);
 
   return {

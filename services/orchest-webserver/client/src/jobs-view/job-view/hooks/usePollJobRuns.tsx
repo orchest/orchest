@@ -28,10 +28,7 @@ const useRefreshPerMinute = (
   }, [nextRefreshTime, refresh, disabled]);
 };
 
-export const usePollPageJobRuns = (
-  refresh: () => void,
-  { disabled }: { disabled: boolean }
-) => {
+export const usePollPageJobRuns = (refresh: () => void) => {
   const hasOngoingRuns = useJobRunsApi((state) =>
     state.runs?.some(
       (run) => run.status === "PENDING" || run.status === "STARTED"
@@ -39,7 +36,7 @@ export const usePollPageJobRuns = (
   );
 
   const pageNumber = useJobRunsApi((state) => state.pagination?.page_number);
-  const isEnabled = !disabled && pageNumber === 1;
+  const isEnabled = pageNumber === 1;
 
   // To ensure user see the progress of ongoing jog runs.
   useInterval(

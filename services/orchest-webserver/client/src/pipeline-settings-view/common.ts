@@ -1,5 +1,10 @@
 import { ServiceTemplate } from "@/pipeline-settings-view/ServiceTemplatesDialog/content";
-import type { Json, PipelineSettings, PipelineState, Service } from "@/types";
+import type {
+  Json,
+  PipelineJsonState,
+  PipelineSettings,
+  Service,
+} from "@/types";
 import { hasValue } from "@orchest/lib-utils";
 import cloneDeep from "lodash.clonedeep";
 
@@ -34,8 +39,8 @@ export function parseJsonString<T = Json>(str: string | undefined) {
 }
 
 export const cleanPipelineJson = (
-  pipelineJson: PipelineState
-): PipelineState => {
+  pipelineJson: PipelineJsonState
+): PipelineJsonState => {
   let pipelineCopy = cloneDeep(pipelineJson);
   for (let uuid in pipelineCopy.services) {
     const serviceName = pipelineCopy.services[uuid].name;
@@ -54,12 +59,12 @@ export const generatePipelineJsonForSaving = ({
   services,
   settings = {},
 }: {
-  pipelineJson: PipelineState;
+  pipelineJson: PipelineJsonState;
   pipelineParameters: string | undefined;
   pipelineName: string | undefined;
   services: Record<string, Service> | undefined;
   settings: PipelineSettings | undefined;
-}): PipelineState => {
+}): PipelineJsonState => {
   const parameters = parseJsonString<Json>(pipelineParameters);
 
   return cleanPipelineJson({

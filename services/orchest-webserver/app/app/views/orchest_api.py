@@ -470,11 +470,26 @@ def register_orchest_api_views(app, db):
 
     @app.route("/catch/api-proxy/api/jobs/<job_uuid>/pipeline_runs", methods=["GET"])
     def catch_api_proxy_job_pipeline_runs(job_uuid):
+        # CLOUD
+        request_args = dict(request.args)
+        request_args["job_uuid__in"] = job_uuid
 
         resp = requests.get(
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
-            + "/api/jobs/%s/pipeline_runs" % (job_uuid)
+            + "/api/jobs/pipeline_runs"
+            + request_args_to_string(request_args)
+        )
+
+        return resp.content, resp.status_code, resp.headers.items()
+
+    @app.route("/catch/api-proxy/api/jobs/pipeline_runs", methods=["GET"])
+    def catch_api_proxy_jobs_pipeline_runs():
+
+        resp = requests.get(
+            "http://"
+            + app.config["ORCHEST_API_ADDRESS"]
+            + "/api/jobs/pipeline_runs"
             + request_args_to_string(request.args)
         )
 

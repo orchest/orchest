@@ -22,7 +22,7 @@ const useLocationState = <T>(stateNames: string[]) => {
   ) as unknown) as T;
 };
 
-// see https://reactrouter.com/web/example/query-parameters
+// see https://v5.reactrouter.com/web/example/query-parameters
 // e.g. https://example.com/user?foo=123&bar=abc
 // const [foo, bar] = useLocationQuery(['foo', 'bar']);
 // console.log(foo); // '123'
@@ -33,6 +33,7 @@ export const useLocationQuery = (
 ): (string | boolean | null | undefined)[] => {
   const location = useLocation();
   const query = new URLSearchParams(location.search);
+
   return queryStrings.map((str) => {
     const value = query.get(str);
     if (value === "undefined") return undefined;
@@ -78,7 +79,7 @@ export const useHistoryListener = <T>({
       }
     });
     return removeListener;
-  }, []);
+  }, [backward, forward, history, onPush]);
 };
 
 export type NavigateParams = {
@@ -131,6 +132,8 @@ export const useCurrentQuery = () => {
     tab,
   };
 };
+
+export type KnownQueryParameters = ReturnType<typeof useCurrentQuery>;
 
 // these are common use cases that are all over the place
 // if there are specific cases that you need to pass some query strings or states
@@ -210,7 +213,7 @@ export type NavigationOptions = {
   /** The new route to navigate to. If omitted, the current route is used. */
   route?: RouteName;
   /** The new scope parameters to use in the query. */
-  query?: Partial<ScopeParameters>;
+  query?: Partial<KnownQueryParameters>;
   /** If `sticky` is true: Clear the following query parameters. */
   clear?: ScopeParameter[];
   /**
@@ -246,14 +249,15 @@ const findCurrentRoute = (): RouteName | undefined => {
  * supported by the provided route are preserved.
  */
 export function useRouteLink(
-  options: NavigateOptions & { route: RouteName }
+  options: NavigateOptions & { route: string }
 ): string;
+export function useRouteLink(options: NavigateOptions): string | undefined;
 export function useRouteLink({
   route = findCurrentRoute(),
   sticky = true,
   query = {},
   clear = [],
-}: NavigationOptions): string | undefined {
+}: NavigationOptions) {
   const currentQuery = useCurrentQuery();
 
   if (!route) return undefined;

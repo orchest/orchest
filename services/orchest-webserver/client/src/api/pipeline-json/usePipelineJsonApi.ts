@@ -1,9 +1,9 @@
-import { PipelineState } from "@/types";
-import { memoizeFor, MemoizePending } from "@/utils/promise";
+import { PipelineJsonState } from "@/types";
+import { memoized, MemoizePending } from "@/utils/promise";
 import create from "zustand";
 import { FetchPipelineJsonParams, pipelineJsonApi } from "./pipelineJsonApi";
 
-export type PipelineMap = { [pipelineUuid: string]: PipelineState };
+export type PipelineMap = { [pipelineUuid: string]: PipelineJsonState };
 
 export type PipelineJsonApi = {
   pipelines: PipelineMap;
@@ -14,7 +14,7 @@ export type PipelineJsonApi = {
 export const usePipelineJsonApi = create<PipelineJsonApi>((set) => {
   return {
     pipelines: {},
-    fetchOne: memoizeFor(500, async (params) => {
+    fetchOne: memoized(async (params) => {
       const data = await pipelineJsonApi.fetchOne(params);
 
       set((api) => ({

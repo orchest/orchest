@@ -26,9 +26,10 @@ export function useCancelablePromise() {
     return cancelable;
   }, []);
 
-  const cancelAll = React.useCallback(() => {
-    () => cancelAllPromises(promisesById.current);
-  }, []);
+  const cancelAll = React.useCallback(
+    () => cancelAllPromises(promisesById.current),
+    []
+  );
 
   React.useEffect(() => {
     const { current } = promisesById;

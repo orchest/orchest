@@ -1,4 +1,4 @@
-import { memoize, PromiseCanceledError } from "../promise";
+import { memoized, PromiseCanceledError } from "../promise";
 
 const createHungPromise = () => new Promise(() => {});
 const delay = (duration: number) =>
@@ -8,7 +8,7 @@ describe("pending promise memoization", () => {
   it("returns the memoized promise for pending promises with identical arguments", () => {
     const fn = (a: number) => createHungPromise();
 
-    const memoizedFn = memoize(fn);
+    const memoizedFn = memoized(fn);
     const firstPromise = memoizedFn(1);
     const nextPromise = memoizedFn(1);
 
@@ -18,7 +18,7 @@ describe("pending promise memoization", () => {
   it("creates new promises when parameters are not equal", () => {
     const fn = (a: number) => createHungPromise();
 
-    const memoizedFn = memoize(fn);
+    const memoizedFn = memoized(fn);
     const firstPromise = memoizedFn(1);
     const nextPromise = memoizedFn(2);
 
@@ -28,7 +28,7 @@ describe("pending promise memoization", () => {
   it("bypasses memoization when requested", () => {
     const fn = (a: number) => createHungPromise();
 
-    const memoizedFn = memoize(fn);
+    const memoizedFn = memoized(fn);
     const firstPromise = memoizedFn(1);
     const bypassedPromise = memoizedFn.bypass(1);
 
@@ -38,11 +38,11 @@ describe("pending promise memoization", () => {
   it("removes expired promises after their duration has elapsed", async () => {
     const fn = (a: number) => createHungPromise();
 
-    const duration = 2;
-    const memoizedFn = memoize(fn, { duration });
+    const timeout = 2;
+    const memoizedFn = memoized(fn, { timeout });
     const firstPromise = memoizedFn(1);
 
-    await delay(duration * 2);
+    await delay(timeout * 2);
 
     const nextPromise = memoizedFn(1);
 
@@ -52,11 +52,11 @@ describe("pending promise memoization", () => {
   it("cancels expired promises after their duration has elapsed promises if configured", async () => {
     const fn = (a: number) => createHungPromise();
 
-    const duration = 2;
-    const memoizedFn = memoize(fn, { duration, cancelExpired: true });
+    const timeout = 2;
+    const memoizedFn = memoized(fn, { timeout, cancelExpired: true });
     const promise = memoizedFn(1);
 
-    await delay(duration * 2);
+    await delay(timeout * 2);
 
     expect(promise).rejects.toThrowError(PromiseCanceledError);
   });

@@ -6,6 +6,7 @@ import Collapse from "@mui/material/Collapse";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
+import { usePipelineDataContext } from "../contexts/PipelineDataContext";
 import { useJupyterLabLink } from "../hooks/useJupyterLabLink";
 import { FilePreviewMoreOptionsButton } from "./FilePreviewMoreOptionsButton";
 import { useFilePreviewState } from "./hooks/useFilePreviewState";
@@ -20,6 +21,7 @@ export const FilePreviewHeader = ({ name, isStep }: FilePreviewHeaderProps) => {
   const toggleConnections = () => setShowConnections(!showConnections);
   const activeStep = useActiveStep();
   const jupyterLabUrl = useJupyterLabLink(activeStep);
+  const { isReadOnly } = usePipelineDataContext();
 
   return (
     <Stack>
@@ -58,6 +60,7 @@ export const FilePreviewHeader = ({ name, isStep }: FilePreviewHeaderProps) => {
           <Button
             LinkComponent={RouteLink}
             variant="contained"
+            disabled={isReadOnly}
             href={jupyterLabUrl}
           >
             Edit in JupyterLab

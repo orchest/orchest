@@ -2,6 +2,7 @@ import {
   BUILD_IMAGE_SOLUTION_VIEW,
   useProjectsContext,
 } from "@/contexts/ProjectsContext";
+import { useActiveProject } from "@/hooks/useActiveProject";
 import { useBuildEnvironmentImages } from "@/hooks/useBuildEnvironmentImages";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -16,9 +17,10 @@ type BuildPendingDialogProps = { onCancel?: (isBuilding: boolean) => void };
 
 const BuildPendingDialog = ({ onCancel }: BuildPendingDialogProps) => {
   const {
-    state: { projectUuid, buildRequest },
     dispatch,
+    state: { buildRequest },
   } = useProjectsContext();
+  const activeProject = useActiveProject();
   const {
     isBuilding,
     triggerBuilds,
@@ -38,7 +40,7 @@ const BuildPendingDialog = ({ onCancel }: BuildPendingDialogProps) => {
     triggerBuilds();
   };
 
-  const isOpen = buildRequest.projectUuid === projectUuid;
+  const isOpen = buildRequest.projectUuid === activeProject?.uuid;
   const shouldHideCancel =
     buildRequest.requestedFromView === BUILD_IMAGE_SOLUTION_VIEW.JUPYTER_LAB &&
     isBuilding;

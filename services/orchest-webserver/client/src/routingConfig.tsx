@@ -2,7 +2,7 @@ import { findRouteMatch } from "./hooks/useMatchProjectRoot";
 import { ScopeParameter } from "./types";
 
 export type RouteName =
-  | "projects"
+  | "home"
   | "projectSettings"
   | "pipeline"
   | "jupyterLab"
@@ -40,9 +40,9 @@ const _getTitle = (pageTitle: string) => `${pageTitle} · Orchest`;
 export const getOrderedRoutes = (getTitle = _getTitle) => {
   return [
     {
-      name: "projects",
-      path: "/projects",
-      title: getTitle("Projects"),
+      name: "home",
+      path: "/",
+      title: getTitle("Home"),
       scope: [],
     },
     {
@@ -169,7 +169,7 @@ export const getOrderedRoutes = (getTitle = _getTitle) => {
       title: getTitle("Help"),
       scope: [],
     },
-    // TODO: we need a proper PageNotFound page, atm we redirect back to ProjectsView
+    // TODO: we need a proper PageNotFound page, atm we redirect back to home view
     // // will always be the last one as a fallback
     // {
     //   name: "notFound",
