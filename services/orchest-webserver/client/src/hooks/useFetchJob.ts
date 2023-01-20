@@ -1,26 +1,14 @@
-import { JobData } from "@/types";
-import { useFetcher } from "./useFetcher";
+import { useJobsApi } from "@/api/jobs/useJobsApi";
+import React from "react";
+import { useHydrate } from "./useHydrate";
 
-export function useFetchJob({
-  jobUuid,
-  runStatuses,
-}: {
-  jobUuid: string | undefined;
-  runStatuses?: boolean;
-}) {
-  const { fetchData, data, setData, error, status } = useFetcher<JobData>(
-    jobUuid
-      ? `/catch/api-proxy/api/jobs/${jobUuid}${
-          runStatuses ? "?aggregate_run_statuses=true" : ""
-        }`
-      : undefined
-  );
+export function useFetchJob(jobUuid: string | undefined) {
+  const job = useJobsApi((api) => (jobUuid ? api.jobs?.[jobUuid] : undefined));
+  const fetchOne = useJobsApi((api) => api.fetchOne);
+  const fetchJob = React.useCallback(() => {
+    return fetchOne(jobUuid);
+  }, [fetchOne, jobUuid]);
+  const state = useHydrate(fetchJob, { rehydrate: true });
 
-  return {
-    job: data,
-    error,
-    isFetchingJob: status === "PENDING",
-    fetchJob: fetchData,
-    setJob: setData,
-  };
+  return { job, ...state };
 }

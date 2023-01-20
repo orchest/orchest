@@ -1,4 +1,4 @@
-import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import { hasValue } from "@orchest/lib-utils";
@@ -20,7 +20,7 @@ export const useSyncJobUuidWithQueryArgs = () => {
   const uuid = useEditJob((state) => state.jobChanges?.uuid);
   const initJobChanges = useEditJob((state) => state.initJobChanges);
   const resetJobChanges = useEditJob((state) => state.resetJobChanges);
-  const jobs = useJobsApi((state) => state.jobs);
+  const jobs = useProjectJobsApi((state) => state.jobs);
 
   const targetJob = React.useMemo(() => {
     const foundJob =
@@ -42,7 +42,7 @@ export const useSyncJobUuidWithQueryArgs = () => {
   const isJobUuidFromRouteInvalid =
     targetJob && targetJob.uuid !== jobUuidFromRoute;
 
-  const fetchJob = useJobsApi((state) => state.fetchOne);
+  const fetchJob = useProjectJobsApi((state) => state.fetchOne);
 
   const shouldUpdateJobChanges = hasValue(targetJob) && uuid !== targetJob.uuid;
 

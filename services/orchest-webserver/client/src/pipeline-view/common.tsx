@@ -1,7 +1,7 @@
 import {
   NewConnection,
   PipelineJson,
-  PipelineState,
+  PipelineJsonState,
   StepNode,
   StepsDict,
   UnidirectionalStepNode,
@@ -12,7 +12,7 @@ import { setOutgoingConnections } from "@/utils/webserver-utils";
 export const DRAG_CLICK_SENSITIVITY = 3;
 
 export const updatePipelineJson = (
-  pipelineJson: PipelineState | PipelineJson,
+  pipelineJson: PipelineJsonState | PipelineJson,
   steps: StepsDict
 ): PipelineJson => {
   pipelineJson.steps = Object.entries(steps).reduce(

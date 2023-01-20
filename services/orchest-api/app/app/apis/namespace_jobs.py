@@ -8,7 +8,7 @@ from celery.contrib.abortable import AbortableAsyncResult
 from croniter import croniter
 from flask import abort, current_app, request
 from flask_restx import Namespace, Resource, marshal, reqparse
-from sqlalchemy import desc, func
+from sqlalchemy import asc, desc, func, or_, tuple_
 from sqlalchemy.orm import attributes, joinedload, load_only, noload, undefer
 
 import app.models as models
@@ -280,11 +280,9 @@ class DraftJobPipelineUpdate(Resource):
 
 
 @api.route(
-    "/<string:job_uuid>/pipeline_runs",
-    doc={"description": ("Retrieve list of job runs.")},
+    "/pipeline_runs",
+    doc={"description": ("Retrieve list of job pipeline runs.")},
 )
-@api.param("job_uuid", "UUID of Job")
-@api.response(404, "Job not found")
 class PipelineRunsList(Resource):
     @api.doc(
         "get_job_pipeline_runs",
@@ -308,14 +306,53 @@ class PipelineRunsList(Resource):
                 ),
                 "type": str,
             },
+            "project_uuid__in": {
+                "description": "Comma separated uuids.",
+                "type": str,
+            },
+            "project_pipeline_uuid__in": {
+                "description": (
+                    "Comma separated uuids, where the Nth uuid is a project uuid and "
+                    "the Nth+1 uuid is a pipeline uuid for all even Ns including 0, "
+                    "e.g. [proj_uuid, ppl_uuid, proj_uuid, ppl_uuid, ...]. This is "
+                    "necessary because the pipeline uuid is not unique making across "
+                    "projects. Note that, while all filters are AND'd, this particular "
+                    "filter makes an OR with the project_uuid__in one. Meaning that, "
+                    "for example, if you have a status__in, project_uuid__in and "
+                    "project_pipeline_uuid__in filter, you will get the records "
+                    "respecting a constraint like AND(status_in(), OR(project_in(), "
+                    "proj_ppl_in()). This allows for filtering runs that are part of a "
+                    "project OR of a particular pipeline."
+                ),
+                "type": str,
+            },
+            "job_uuid__in": {
+                "description": "Comma separated uuids.",
+                "type": str,
+            },
+            "status__in": {
+                "description": "Comma separated.",
+                "type": str,
+            },
+            "created_time__gt": {
+                "description": (
+                    "String representing a timestamp in ISOFORMAT, UTC, timezone not "
+                    "necessary."
+                ),
+                "type": str,
+            },
+            "sort": {
+                "description": "Either 'oldest' or or 'newest'. Default is 'newest'.",
+                type: str,
+            },
         },
     )
     @api.response(200, "Success", schema.paginated_job_pipeline_runs)
     @api.response(200, "Success", schema.job_pipeline_runs)
-    def get(self, job_uuid):
-        """Fetch pipeline runs of a job, sorted newest first.
+    def get(self):
+        """Fetch pipeline runs of jobs, sorted newest first.
 
-        Runs are ordered by job_run_index DESC,
+        Runs are ordered by created_time DESC, job_run_index DESC,
         job_run_pipeline_run_index DESC.
 
         The endpoint has optional pagination. If pagination is used the
@@ -325,9 +362,42 @@ class PipelineRunsList(Resource):
         parser.add_argument("page", type=int, location="args")
         parser.add_argument("page_size", type=int, location="args")
         parser.add_argument("fuzzy_filter", type=str, location="args")
+        parser.add_argument("project_uuid__in", type=str, action="split")
+        parser.add_argument("project_pipeline_uuid__in", type=str, action="split")
+        parser.add_argument("job_uuid__in", type=str, action="split")
+        parser.add_argument("status__in", type=str, action="split")
+        parser.add_argument("created_time__gt", type=str)
+        parser.add_argument("sort", type=str)
+
         args = parser.parse_args()
         page = args.page
         page_size = args.page_size
+        project_uuids = args.project_uuid__in
+        project_pipeline_uuids = args.project_pipeline_uuid__in
+        job_uuids = args.job_uuid__in
+        statuses = args.status__in
+        created_time__gt = args.created_time__gt
+        sort = args.sort
+
+        if project_pipeline_uuids is not None and len(project_pipeline_uuids) % 2 != 0:
+            return {
+                "message": f"Invalid project_pipeline_uuids {project_pipeline_uuids}."
+            }, 400
+
+        if project_pipeline_uuids is not None:
+            project_pipeline_uuids = [
+                (project_pipeline_uuids[i], project_pipeline_uuids[i + 1])
+                for i in range(0, len(project_pipeline_uuids), 2)
+            ]
+
+        if created_time__gt is not None:
+            # Flask restx has dedicated types but too specific in the
+            # exact format, this is more flexible.
+            try:
+                created_time__gt = datetime.fromisoformat(created_time__gt)
+            except ValueError:
+                return {"message": "Invalid created_time__gt, must be iso format."}, 400
+
         if (page is not None and page_size is None) or (
             page is None and page_size is not None
         ):
@@ -339,24 +409,51 @@ class PipelineRunsList(Resource):
         if page_size is not None and page_size <= 0:
             return {"message": "page_size must be >= 1."}, 400
 
-        if not db.session.query(
-            db.session.query(models.Job).filter_by(uuid=job_uuid).exists()
-        ).scalar():
-            return {"message": "Job not found"}, 404
+        job_runs_query = models.NonInteractivePipelineRun.query.options(
+            noload(models.NonInteractivePipelineRun.pipeline_steps),
+            undefer(models.NonInteractivePipelineRun.env_variables),
+        )
 
-        job_runs_query = (
-            models.NonInteractivePipelineRun.query.options(
-                noload(models.NonInteractivePipelineRun.pipeline_steps),
-                undefer(models.NonInteractivePipelineRun.env_variables),
+        if sort == "oldest":
+            job_runs_query = job_runs_query.order_by(
+                asc(models.NonInteractivePipelineRun.created_time),
+                asc(models.NonInteractivePipelineRun.job_run_index),
+                asc(models.NonInteractivePipelineRun.job_run_pipeline_run_index),
             )
-            .filter_by(
-                job_uuid=job_uuid,
-            )
-            .order_by(
+        else:
+            job_runs_query = job_runs_query.order_by(
+                desc(models.NonInteractivePipelineRun.created_time),
                 desc(models.NonInteractivePipelineRun.job_run_index),
                 desc(models.NonInteractivePipelineRun.job_run_pipeline_run_index),
             )
-        )
+
+        if project_uuids is not None or project_pipeline_uuids is not None:
+            exp = None
+            if project_uuids is not None:
+                exp = models.NonInteractivePipelineRun.project_uuid.in_(project_uuids)
+            if project_pipeline_uuids is not None:
+                exp2 = tuple_(
+                    models.NonInteractivePipelineRun.project_uuid,
+                    models.NonInteractivePipelineRun.pipeline_uuid,
+                ).in_(project_pipeline_uuids)
+                exp = exp2 if exp is None else or_(exp, exp2)
+
+            job_runs_query = job_runs_query.filter(exp)
+
+        if job_uuids is not None:
+            job_runs_query = job_runs_query.filter(
+                models.NonInteractivePipelineRun.job_uuid.in_(job_uuids)
+            )
+
+        if statuses is not None:
+            job_runs_query = job_runs_query.filter(
+                models.NonInteractivePipelineRun.status.in_(statuses)
+            )
+
+        if created_time__gt is not None:
+            job_runs_query = job_runs_query.filter(
+                models.NonInteractivePipelineRun.created_time > created_time__gt
+            )
 
         if args.fuzzy_filter is not None:
             job_runs_query = fuzzy_filter_non_interactive_pipeline_runs(

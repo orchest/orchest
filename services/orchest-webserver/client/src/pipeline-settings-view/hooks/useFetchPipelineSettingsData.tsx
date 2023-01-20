@@ -1,10 +1,9 @@
 import { EnvVarPair } from "@/components/EnvVarList";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useFetchJob } from "@/hooks/useFetchJob";
-import { useFetchPipeline } from "@/hooks/useFetchPipeline";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useFetchPipelineRun } from "@/hooks/useFetchPipelineRun";
+import { useFetchPipelineState } from "@/hooks/useFetchPipelineState";
 import { useFetchProject } from "@/hooks/useFetchProject";
 import { useRegainBrowserTabFocus } from "@/hooks/useFocusBrowserTab";
 import { usePipelineDataContext } from "@/pipeline-view/contexts/PipelineDataContext";
@@ -48,9 +47,7 @@ export const useFetchPipelineSettingsData = ({
   runUuid,
   snapshotUuid,
 }: UseFetchPipelineSettingsParams) => {
-  const { job, fetchJob } = useFetchJob({
-    jobUuid,
-  });
+  const { job, reload: fetchJob } = useFetchJob(jobUuid);
   const { pipelineRun, fetchPipelineRun } = useFetchPipelineRun({
     jobUuid,
     runUuid,
@@ -65,8 +62,9 @@ export const useFetchPipelineSettingsData = ({
     snapshotUuid,
   });
 
-  const { pipeline, fetchPipeline } = useFetchPipeline(
-    !jobUuid && pipelineUuid ? { projectUuid, pipelineUuid } : undefined
+  const { pipeline, reload: fetchPipeline } = useFetchPipelineState(
+    projectUuid,
+    pipelineUuid
   );
 
   // fetch project env vars only if it's not a job or a pipeline run
@@ -113,15 +111,12 @@ export const useFetchPipelineSettingsData = ({
     if (hasRegainedFocus && !hasUnsavedChanges) reinitialize();
   }, [hasUnsavedChanges, hasRegainedFocus, reinitialize]);
 
-  const { dispatch } = useProjectsContext();
-
   const initialized = React.useRef(false);
   React.useEffect(() => {
     if (!initialized.current && pipelineUuid && (pipeline || job)) {
       initialized.current = true;
-      dispatch({ type: "UPDATE_PIPELINE", payload: { uuid: pipelineUuid } });
     }
-  }, [job, pipeline, pipelineUuid, initialized, dispatch]);
+  }, [job, pipeline, pipelineUuid, initialized]);
 
   return {
     job,

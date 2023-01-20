@@ -1,4 +1,4 @@
-import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import { useCurrentQuery } from "@/hooks/useCustomRoute";
 import Stack from "@mui/material/Stack";
 import { hasValue } from "@orchest/lib-utils";
@@ -19,7 +19,7 @@ export const JobViewContainer = ({ children }: JobViewContainerProps) => {
   useUpdateStatusInJobChanges();
 
   const { jobUuid } = useCurrentQuery();
-  const jobs = useJobsApi((state) => state.jobs);
+  const jobs = useProjectJobsApi((state) => state.jobs);
   const isLoading = Boolean(!jobs);
   const hasNoJobs = !isLoading && jobs?.length;
 

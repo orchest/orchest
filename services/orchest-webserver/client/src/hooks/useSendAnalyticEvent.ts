@@ -4,7 +4,7 @@ import React from "react";
 import { useMounted } from "./useMounted";
 
 // use this hook as a side effect by specifying the parameters, it will fire when the component mounts
-// useSendAnalyticEvent('view:loaded', { name: 'projectsView' });
+// useSendAnalyticEvent('view:loaded', { name: 'home' });
 // in this case, this hook doesn't return anything
 // you can also use this hook as a factory, by leaving out the parameters
 // const sendEvent = useSendAnalyticEvent();

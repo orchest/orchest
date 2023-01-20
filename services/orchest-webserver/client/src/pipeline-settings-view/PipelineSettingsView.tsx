@@ -1,3 +1,4 @@
+import { usePipelinesApi } from "@/api/pipelines/usePipelinesApi";
 import { IconButton } from "@/components/common/IconButton";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import {
@@ -176,6 +177,8 @@ export const PipelineSettingsView: React.FC = () => {
     pipelinePath,
   });
 
+  const fetchPipelines = usePipelinesApi((api) => api.fetchForProject);
+
   const allServiceNames = React.useMemo(() => {
     return new Set(Object.values(services || {}).map((s) => s.name));
   }, [services]);
@@ -348,20 +351,9 @@ export const PipelineSettingsView: React.FC = () => {
       setAlert("Error", `Could not save ${errorMessages.join(" and ")}`);
     }
 
-    // Sync changes with the global context
-    const payload = {
-      ...(pipelineJsonChanges.status === "fulfilled"
-        ? { name: pipelineName }
-        : undefined),
-      ...(pipelineChanges.status === "fulfilled"
-        ? { path: pipelinePath }
-        : undefined),
-    };
+    // Re-fetch all pipelines to update the zustand store.
+    await fetchPipelines(projectUuid).catch();
 
-    dispatch({
-      type: "UPDATE_PIPELINE",
-      payload: { uuid: pipelineUuid, ...payload },
-    });
     setPipelineJson(updatedPipelineJson);
     setAsSaved(errorMessages.length === 0);
   };

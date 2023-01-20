@@ -12,6 +12,7 @@ export type SystemStatusIconProps = {
   status?: SystemStatus;
   flavor: StatusFlavor;
   size?: "small" | "medium" | "large";
+  animate?: boolean;
 };
 
 export type SystemStatusIconSize = "small" | "medium" | "large";
@@ -26,8 +27,9 @@ export const SystemStatusIcon = ({
   status,
   flavor,
   size,
+  animate = true,
 }: SystemStatusIconProps) => {
-  if (status === "PENDING" && flavor === "job") {
+  if (status === "SCHEDULED" || (status === "PENDING" && flavor === "job")) {
     return <ScheduleOutlined fontSize={size} />;
   } else if (status === "PENDING" && flavor === "pipeline") {
     return <CircleOutlined fontSize={size} color="action" />;
@@ -36,6 +38,8 @@ export const SystemStatusIcon = ({
       <CircularProgress
         sx={{ marginRight: 0.25 }}
         size={size ? progressSize[size] : undefined}
+        variant={animate ? "indeterminate" : "determinate"}
+        value={animate ? undefined : 70}
       />
     );
   } else if (status === "SUCCESS") {

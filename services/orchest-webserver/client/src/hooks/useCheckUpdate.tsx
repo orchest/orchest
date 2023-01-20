@@ -106,7 +106,7 @@ export const useCheckUpdate = () => {
 
   // Only check update on mount if the route path matches the following:
   const match = useMatchRoutePaths([
-    siteMap.projects,
+    siteMap.home,
     siteMap.settings,
     siteMap.help,
   ]);

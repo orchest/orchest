@@ -81,10 +81,9 @@ const usePollBuildStatus = () => {
 };
 
 export const useBuildEnvironmentImages = () => {
-  const { navigateTo } = useCustomRoute();
-
+  const { navigateTo, projectUuid } = useCustomRoute();
   const {
-    state: { projectUuid, buildRequest },
+    state: { buildRequest },
     dispatch,
   } = useProjectsContext();
 

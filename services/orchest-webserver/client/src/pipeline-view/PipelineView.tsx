@@ -2,45 +2,24 @@ import { Layout } from "@/components/layout/Layout";
 import { MainSidePanel } from "@/components/layout/MainSidePanel";
 import ProjectBasedView from "@/components/ProjectBasedView";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useCurrentQuery } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useRouteMatch } from "react-router-dom";
-import { PipelineSettingsView } from "../pipeline-settings-view/PipelineSettingsView";
-import { FullScreenDialogHolder } from "./components/FullScreenDialogHolder";
 import { PipelineContextProviders } from "./contexts/PipelineContextProviders";
 import { FileManager } from "./file-manager/FileManager";
 import { FilePreview } from "./FilePreview";
-import { PipelineFileName } from "./pipeline-canvas-header-bar/PipelineFileName";
-import { PipelineLogs } from "./pipeline-logs-dialog/PipelineLogs";
 import { PipelineEditor } from "./PipelineEditor";
+import { PipelineFullScreenDialogs } from "./PipelineFullScreenDialogs";
 import { SessionsPanel } from "./sessions-panel/SessionsPanel";
-
-type FullScreenDialogHeaderProps = { title: string };
-
-const FullScreenDialogHeader = ({ title }: FullScreenDialogHeaderProps) => {
-  const printTitle = `${title}:`;
-  return (
-    <Stack direction="row" alignItems="baseline">
-      <Typography
-        variant="h5"
-        sx={{ marginRight: (theme) => theme.spacing(1) }}
-      >
-        {printTitle}
-      </Typography>
-      <PipelineFileName hideBackToJob />
-    </Stack>
-  );
-};
 
 const PipelineView = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.pipeline.path });
-  const {
-    state: { pipelineReadOnlyReason, projectUuid },
-  } = useProjectsContext();
+  const { projectUuid } = useCurrentQuery();
+  const { pipelineReadOnlyReason } = useProjectsContext().state;
   const { path } = useRouteMatch();
 
   return (
@@ -59,18 +38,7 @@ const PipelineView = () => {
             )}
           </Stack>
 
-          <FullScreenDialogHolder
-            dialogId="logs"
-            title={<FullScreenDialogHeader title="Logs" />}
-          >
-            <PipelineLogs />
-          </FullScreenDialogHolder>
-          <FullScreenDialogHolder
-            dialogId={["configuration", "environment-variables", "services"]}
-            title={<FullScreenDialogHeader title="Pipeline settings" />}
-          >
-            <PipelineSettingsView />
-          </FullScreenDialogHolder>
+          <PipelineFullScreenDialogs />
         </PipelineContextProviders>
       ) : (
         <ProjectBasedView />

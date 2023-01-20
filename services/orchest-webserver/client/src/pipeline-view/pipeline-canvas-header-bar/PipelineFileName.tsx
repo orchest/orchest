@@ -1,5 +1,5 @@
 import { RouteLink } from "@/components/RouteLink";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useActivePipeline } from "@/hooks/useActivePipeline";
 import { useRouteLink } from "@/hooks/useCustomRoute";
 import { basename } from "@/utils/path";
 import { ellipsis } from "@/utils/styles";
@@ -39,9 +39,7 @@ type PipelineFileNameProps = {
 };
 
 export const PipelineFileName = ({ hideBackToJob }: PipelineFileNameProps) => {
-  const {
-    state: { pipeline },
-  } = useProjectsContext();
+  const pipeline = useActivePipeline();
 
   const { path = "" } = pipeline || {};
 

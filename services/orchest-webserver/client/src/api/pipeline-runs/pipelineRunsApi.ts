@@ -1,7 +1,7 @@
 import { PipelineJson, PipelineRun } from "@/types";
 import { join } from "@/utils/path";
 import { queryArgs } from "@/utils/text";
-import { fetcher, HEADER } from "@orchest/lib-utils";
+import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 
 export const PIPELINE_RUN_STATUS_ENDPOINT = "/catch/api-proxy/api/runs";
 
@@ -11,6 +11,10 @@ export type StepStatusQuery = {
   pipelineDefinition: PipelineJson;
   type: RunStepsType;
 };
+
+export type PipelineQuery =
+  | { pipelineUuid: string; projectUuid: string; active?: boolean }
+  | { active?: boolean };
 
 export type RunStepsType = "selection" | "incoming";
 
@@ -36,11 +40,10 @@ const cancel = (runUuid: string) =>
     method: "DELETE",
   });
 
-const fetchAll = (projectUuid: string, pipelineUuid: string) =>
+const fetchAll = (pipelineQuery?: PipelineQuery) =>
   fetcher<{ runs: PipelineRun[] }>(
     PIPELINE_RUN_STATUS_ENDPOINT +
-      "?" +
-      queryArgs({ projectUuid, pipelineUuid })
+      (hasValue(pipelineQuery) ? "?" + queryArgs(pipelineQuery) : "")
   ).then((data) => data.runs);
 
 const fetchOne = (runUuid: string) =>

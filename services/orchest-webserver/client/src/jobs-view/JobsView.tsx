@@ -1,4 +1,4 @@
-import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import { ViewLayout } from "@/components/layout/ViewLayout";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
@@ -9,7 +9,7 @@ import { JobMenuList } from "./JobMenuList";
 
 export const JobsView = () => {
   useSendAnalyticEvent("view:loaded", { name: siteMap.environments.path });
-  const hasJobs = useJobsApi((state) => state.jobs?.length !== 0);
+  const hasJobs = useProjectJobsApi((state) => state.jobs?.length !== 0);
 
   return (
     <ViewLayout

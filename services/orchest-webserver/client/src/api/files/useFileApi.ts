@@ -10,7 +10,7 @@ import {
   sortFileMap,
 } from "@/utils/file-map";
 import { dirname, isDirectory, join, trimLeadingSlash } from "@/utils/path";
-import { memoizeFor, MemoizePending } from "@/utils/promise";
+import { memoized, MemoizePending } from "@/utils/promise";
 import { hasValue } from "@orchest/lib-utils";
 import create from "zustand";
 import { ExtensionSearchParams, filesApi, TreeNode } from "./fileApi";
@@ -51,7 +51,7 @@ export type FileApi = {
   init: MemoizePending<
     (depth: number, scope: FileScope) => Promise<Record<string, FileMap>>
   >;
-  delete: MemoizePending<(root: FileRoot, path: string) => Promise<void>>;
+  delete: (root: FileRoot, path: string) => Promise<void>;
   move: MemoizePending<(move: UnpackedMove) => Promise<void>>;
   duplicate: MemoizePending<(root: FileRoot, path: string) => Promise<void>>;
   /**
@@ -119,8 +119,8 @@ export const useFileApi = create<FileApi>((set, get) => {
   return {
     roots: {},
     scope: {},
-    expand: memoizeFor(500, expand),
-    create: memoizeFor(500, async (root, path) => {
+    expand: memoized(expand),
+    create: memoized(async (root, path) => {
       const { projectUuid } = get().scope;
 
       if (!projectUuid) return;
@@ -133,7 +133,7 @@ export const useFileApi = create<FileApi>((set, get) => {
 
       updateRoot(root, (fileMap) => addToFileMap(fileMap, path));
     }),
-    delete: memoizeFor(500, async (root, path) => {
+    delete: async (root, path) => {
       const { projectUuid } = get().scope;
 
       if (!projectUuid) return;
@@ -141,8 +141,8 @@ export const useFileApi = create<FileApi>((set, get) => {
       await filesApi.deleteNode({ projectUuid, root, path });
 
       updateRoot(root, (fileMap) => removeFromFileMap(fileMap, path));
-    }),
-    move: memoizeFor(500, async (move) => {
+    },
+    move: memoized(async (move) => {
       const { projectUuid } = get().scope;
 
       if (!projectUuid) return;
@@ -151,7 +151,7 @@ export const useFileApi = create<FileApi>((set, get) => {
 
       set(({ roots }) => ({ roots: moveBetween(roots, move) }));
     }),
-    duplicate: memoizeFor(500, async (root, path) => {
+    duplicate: memoized(async (root, path) => {
       const { projectUuid } = get().scope;
 
       if (!projectUuid) return;
@@ -159,7 +159,7 @@ export const useFileApi = create<FileApi>((set, get) => {
       await filesApi.duplicate(projectUuid, root, path);
       await expand(root, dirname(path));
     }),
-    init: memoizeFor(500, async (depth, scope) => {
+    init: memoized(async (depth, scope) => {
       set({ scope });
 
       const entries = await Promise.all(
@@ -178,7 +178,7 @@ export const useFileApi = create<FileApi>((set, get) => {
 
       return roots;
     }),
-    refresh: memoizeFor(500, async () => {
+    refresh: memoized(async () => {
       const entries = await Promise.all(
         fileRoots.map((root) =>
           fetchNode({ root, path: "/", depth: getDepth(root) ?? 2 })
@@ -193,7 +193,7 @@ export const useFileApi = create<FileApi>((set, get) => {
 
       set({ roots });
     }),
-    extensionSearch: memoizeFor(500, async (params) => {
+    extensionSearch: memoized(async (params) => {
       const { projectUuid } = get().scope;
 
       if (!projectUuid) return [];
@@ -204,7 +204,7 @@ export const useFileApi = create<FileApi>((set, get) => {
 
       return paths;
     }),
-    read: memoizeFor(500, async (root, path) => {
+    read: memoized(async (root, path) => {
       const { scope } = get();
       const { projectUuid } = scope;
 

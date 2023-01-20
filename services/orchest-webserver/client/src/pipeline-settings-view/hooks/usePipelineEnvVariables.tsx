@@ -1,11 +1,11 @@
 import { EnvVarPair } from "@/components/EnvVarList";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { PipelineData, PipelineRun } from "@/types";
+import { PipelineRun, PipelineState } from "@/types";
 import { envVariablesDictToArray } from "@/utils/webserver-utils";
 import React from "react";
 
 export const usePipelineEnvVariables = (
-  pipeline: PipelineData | undefined,
+  pipeline: PipelineState | undefined,
   pipelineRun: PipelineRun | undefined
 ) => {
   const { setAsSaved } = useGlobalContext();

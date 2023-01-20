@@ -1,7 +1,7 @@
 import { setOutgoingConnections } from "@/utils/webserver-utils";
 import type {
-  PipelineData,
   PipelineJson,
+  PipelineJsonState,
   PipelineMetaData,
   PipelineState,
   Project,
@@ -11,7 +11,7 @@ import { chance } from "./common.mock";
 
 type MockPipelineData = {
   metadata: PipelineMetaData;
-  pipeline: PipelineData;
+  pipeline: PipelineState;
   definition: PipelineJson;
 };
 
@@ -31,7 +31,7 @@ const generatePipelineDefinition = (
   pipelineUuid: string,
   pipelineName: string,
   stepCount = 2
-): PipelineState => {
+): PipelineJsonState => {
   const stepsDataDict: Record<string, StepData> = {};
 
   let prevStepUUid = "";
@@ -102,9 +102,11 @@ const generateMockPipelineData = (
       uuid,
       path,
       name: pipelineName,
+      project_uuid: projectUuid,
     },
     pipeline: {
       env_variables: { [chance.string()]: chance.string() },
+      name: pipelineName,
       path,
       project_uuid: projectUuid,
       status: "READY",

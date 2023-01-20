@@ -1,5 +1,6 @@
 import { RouteLink } from "@/components/RouteLink";
 import { useRouteLink } from "@/hooks/useCustomRoute";
+import { useFetchSnapshot } from "@/hooks/useFetchSnapshot";
 import { JobData } from "@/types";
 import { humanizeDate } from "@/utils/date-time";
 import Box from "@mui/material/Box";
@@ -8,7 +9,6 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import cronstrue from "cronstrue";
 import React from "react";
-import { useSnapshot } from "../hooks/useSnapshot";
 import { useActiveJob } from "./hooks/useActiveJob";
 
 export const JobSummary = () => {
@@ -21,7 +21,7 @@ type JobSummaryComponentProps = {
 };
 
 const JobSummaryComponent = ({ job }: JobSummaryComponentProps) => {
-  const { snapshot } = useSnapshot(job.snapshot_uuid);
+  const { snapshot } = useFetchSnapshot(job.snapshot_uuid);
   const pipelineUrl = useRouteLink({
     route: "jobRun",
     query: {

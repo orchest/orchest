@@ -5,7 +5,6 @@ import { useFetchProjects } from "@/hooks/useFetchProjects";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import type {
   EnvironmentValidationData,
-  PipelineMetaData,
   ReducerActionWithCallback,
 } from "@/types";
 import { FetchError } from "@orchest/lib-utils";
@@ -45,13 +44,8 @@ export type PipelineReadOnlyReason =
   | "JupyterEnvironmentBuildInProgress";
 
 export type ProjectContextState = {
-  /** The UUID of the active project. */
-  projectUuid?: string;
   pipelineReadOnlyReason?: PipelineReadOnlyReason;
   pipelineSaveStatus: "saved" | "saving";
-  pipelines: PipelineMetaData[] | undefined;
-  pipeline: PipelineMetaData | undefined;
-  hasLoadedPipelinesInPipelineEditor: boolean;
   newPipelineUuid: string | undefined;
   buildRequest?: BuildRequest;
 };
@@ -60,32 +54,12 @@ export const useProjectsContext = () => React.useContext(ProjectsContext);
 
 type Action =
   | {
-      type: "ADD_PIPELINE";
-      payload: PipelineMetaData;
-    }
-  | {
-      type: "SET_PIPELINES";
-      payload: PipelineMetaData[] | undefined;
-    }
-  | {
-      type: "LOAD_PIPELINES";
-      payload: PipelineMetaData[];
-    }
-  | {
       type: "SET_PIPELINE_SAVE_STATUS";
       payload: ProjectContextState["pipelineSaveStatus"];
     }
   | {
-      type: "SET_PROJECT";
-      payload: ProjectContextState["projectUuid"];
-    }
-  | {
       type: "SET_PIPELINE_READONLY_REASON";
       payload: PipelineReadOnlyReason | undefined;
-    }
-  | {
-      type: "UPDATE_PIPELINE";
-      payload: { uuid: string } & Partial<PipelineMetaData>;
     }
   | {
       type: "SET_BUILD_REQUEST";
@@ -114,9 +88,6 @@ export interface ProjectContext {
 
 const baseState: ProjectContextState = {
   pipelineSaveStatus: "saved",
-  pipelines: undefined,
-  pipeline: undefined,
-  hasLoadedPipelinesInPipelineEditor: false,
   newPipelineUuid: undefined,
 };
 
@@ -170,113 +141,10 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
       const action = _action instanceof Function ? _action(state) : _action;
 
       switch (action.type) {
-        case "ADD_PIPELINE": {
-          setActivePipeline(state.projectUuid, action.payload.uuid);
-          return {
-            ...state,
-            pipelines: state.pipelines
-              ? [...state.pipelines, action.payload]
-              : [action.payload],
-            pipeline: action.payload,
-            newPipelineUuid: action.payload.uuid,
-          };
-        }
-        case "UPDATE_PIPELINE": {
-          const { uuid, ...changes } = action.payload;
-          const currentPipelines = state.pipelines || [];
-
-          // Always look up `state.pipelines`.
-          const targetPipeline = currentPipelines.find(
-            (pipeline) => pipeline.uuid === uuid
-          );
-
-          setActivePipeline(state.projectUuid, targetPipeline?.uuid || null);
-          if (!targetPipeline) return { ...state, pipeline: undefined };
-
-          const updatedPipeline = { ...targetPipeline, ...changes };
-          const updatedPipelines = (state.pipelines || []).map((pipeline) =>
-            pipeline.uuid === uuid ? updatedPipeline : pipeline
-          );
-          return {
-            ...state,
-            pipeline: updatedPipeline,
-            pipelines: updatedPipelines,
-          };
-        }
-        case "LOAD_PIPELINES": {
-          const cachedPipelineUuid =
-            pipelinesByProject[state.projectUuid || ""];
-          const found = action.payload.find(
-            (pipeline) => pipeline.uuid === cachedPipelineUuid
-          );
-          const targetPipeline = found || action.payload[0];
-
-          setActivePipeline(state.projectUuid, targetPipeline?.uuid);
-
-          return {
-            ...state,
-            pipelines: action.payload,
-            pipeline: targetPipeline,
-            hasLoadedPipelinesInPipelineEditor: true,
-          };
-        }
-        case "SET_PIPELINES": {
-          if (!action.payload)
-            return {
-              ...state,
-              pipelines: undefined,
-              pipeline: undefined,
-              hasLoadedPipelinesInPipelineEditor: false,
-            };
-
-          const isCurrentPipelineRemoved = !action.payload.some(
-            (pipeline) => state.pipeline?.path === pipeline.path
-          );
-
-          const targetPipeline = isCurrentPipelineRemoved
-            ? action.payload[0]
-            : state.pipeline;
-
-          if (isCurrentPipelineRemoved)
-            setActivePipeline(state.projectUuid, targetPipeline?.uuid || null);
-
-          return {
-            ...state,
-            pipelines: action.payload,
-            pipeline: targetPipeline,
-            hasLoadedPipelinesInPipelineEditor: true,
-          };
-        }
         case "SET_PIPELINE_SAVE_STATUS":
           return { ...state, pipelineSaveStatus: action.payload };
         case "SET_PIPELINE_READONLY_REASON":
           return { ...state, pipelineReadOnlyReason: action.payload };
-        case "SET_PROJECT": {
-          if (!action.payload) {
-            return {
-              ...state,
-              projectUuid: undefined,
-              pipelines: undefined,
-              pipeline: undefined,
-              hasLoadedPipelinesInPipelineEditor: false,
-            };
-          }
-
-          // Ensure that projectUuid is valid in the state.
-          // So that we could show proper warnings in case user provides
-          // an invalid projectUuid from the route args.
-          const foundProject = projects?.[action.payload];
-
-          if (!foundProject) return state;
-
-          return {
-            ...state,
-            projectUuid: foundProject.uuid,
-            pipelines: undefined,
-            pipeline: undefined,
-            hasLoadedPipelinesInPipelineEditor: false,
-          };
-        }
         case "SET_BUILD_REQUEST": {
           return { ...state, buildRequest: action.payload };
         }
@@ -302,7 +170,6 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
   );
   const [state, dispatch] = React.useReducer(memoizedReducer, {
     ...baseState,
-    projectUuid: activeProject?.uuid,
   });
 
   const { makeCancelable } = useCancelablePromise();
@@ -332,19 +199,20 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
 
   const triggerRequestBuild = React.useCallback(
     async (
+      projectUuid: string | undefined,
       environmentValidationData: EnvironmentValidationData | undefined,
       requestedFromView: BUILD_IMAGE_SOLUTION_VIEW
     ) => {
-      if (!state.projectUuid) return new Error("project UUID unavailable");
+      if (!projectUuid) return new Error("project UUID unavailable");
       if (!environmentValidationData) return new Error("Unable to validate");
 
       return requestBuild(
-        state.projectUuid,
+        projectUuid,
         environmentValidationData,
         requestedFromView
       );
     },
-    [requestBuild, state.projectUuid]
+    [requestBuild]
   );
 
   const validate = useEnvironmentsApi((state) => state.validate);
@@ -370,9 +238,13 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
         return new FetchError(readOnlyReason);
       }
 
-      return triggerRequestBuild(validationData, requestedFromView);
+      return triggerRequestBuild(
+        activeProject?.uuid,
+        validationData,
+        requestedFromView
+      );
     },
-    [validate, triggerRequestBuild]
+    [validate, activeProject?.uuid, triggerRequestBuild]
   );
 
   return (

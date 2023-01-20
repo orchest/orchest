@@ -1,4 +1,4 @@
-import { useJobsApi } from "@/api/jobs/useJobsApi";
+import { useProjectJobsApi } from "@/api/jobs/useProjectJobsApi";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useAsync } from "@/hooks/useAsync";
 import { JobData } from "@/types";
@@ -10,9 +10,11 @@ import { useValidJobQueryArgs } from "./useValidJobQueryArgs";
 export const useUpdateJobPipelineUuid = () => {
   const { setAlert } = useGlobalContext();
   const { jobUuid } = useValidJobQueryArgs();
-  const putJobPipelineUuid = useJobsApi((state) => state.putJobPipelineUuid);
+  const putJobPipelineUuid = useProjectJobsApi(
+    (state) => state.putJobPipelineUuid
+  );
   const { run, status } = useAsync<JobData>();
-  const fetchJob = useJobsApi((state) => state.fetchOne);
+  const fetchJob = useProjectJobsApi((state) => state.fetchOne);
   const initJobChanges = useEditJob((state) => state.initJobChanges);
   const jobPipelineUuid = useEditJob(
     (state) => state.jobChanges?.pipeline_uuid

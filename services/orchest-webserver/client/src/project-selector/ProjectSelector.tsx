@@ -1,16 +1,16 @@
+import { useToggle } from "@/hooks/useToggle";
 import React from "react";
 import { ProjectNotFoundMessage } from "./ProjectNotFoundMessage";
 import { ProjectSelectorMenu } from "./ProjectSelectorMenu";
 import { ProjectSelectorToggle } from "./ProjectSelectorToggle";
 
 export const ProjectSelector = () => {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const toggle = React.useCallback(() => setIsOpen((current) => !current), []);
+  const [isOpen, toggle] = useToggle();
 
   return (
     <>
       <ProjectSelectorToggle onClick={toggle} tabIndex={0} isOpen={isOpen} />
-      <ProjectSelectorMenu open={isOpen} onClose={() => setIsOpen(false)} />
+      <ProjectSelectorMenu open={isOpen} onClose={() => toggle(false)} />
       <ProjectNotFoundMessage />
     </>
   );

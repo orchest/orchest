@@ -729,8 +729,16 @@ class PipelineRun(BaseModel):
     __tablename__ = "pipeline_runs"
     __table_args__ = (
         Index(
-            "ix_pipeline_runs_project_uuid_pipeline_uuid",
+            None,
             "project_uuid",
+            "pipeline_uuid",
+            "created_time",
+        ),
+        Index(
+            None,
+            "created_time",
+            "project_uuid",
+            "status",
             "pipeline_uuid",
         ),
     )

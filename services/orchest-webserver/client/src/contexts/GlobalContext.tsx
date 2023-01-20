@@ -217,7 +217,7 @@ const withPromptMessageDispatcher = function <T extends PromptMessage>(
   // store.promptMessages is an array of messages that contains functions like `onConfirm` and `onCancel`
   // in order to subscribe to the state of these functions, we wrap the corresponding dispatcher with a Promise<boolean>
   // therefore, when this async operation within these functions is done, the caller of this dispatcher gets notified.
-  // see ProjectsView, deleteSelectedRows for example
+  // see home view, deleteSelectedRows for example
   const dispatcher = (
     title: string,
     content: string | React.ReactElement | JSX.Element[],
