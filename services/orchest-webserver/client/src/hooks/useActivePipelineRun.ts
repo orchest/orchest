@@ -6,7 +6,7 @@ import {
 import { defineStoreScope } from "@/store/scoped";
 import { PipelineRun, PipelineStepStatus } from "@/types";
 import { isPipelineRunning } from "@/utils/pipeline";
-import { memoizeFor, MemoizePending } from "@/utils/promise";
+import { memoized, MemoizePending } from "@/utils/promise";
 import { equalsShallow } from "@/utils/record";
 import { serverTimeToDate } from "@/utils/webserver-utils";
 import { hasValue } from "@orchest/lib-utils";
@@ -117,7 +117,7 @@ export const useActivePipelineRun = create<ActiveRunApi>(
     return {
       run: undefined,
       stepStates: undefined,
-      runSteps: memoizeFor(200, async (query: RunStepsQuery) => {
+      runSteps: memoized(async (query: RunStepsQuery) => {
         set({
           run: await pipelineRunsApi.runSteps({
             ...query,
@@ -125,7 +125,7 @@ export const useActivePipelineRun = create<ActiveRunApi>(
           }),
         });
       }),
-      fetch: memoizeFor(900, async () => {
+      fetch: memoized(async () => {
         set({ run: await fetchBestPipelineRun() });
       }),
       isJobRun: () => hasValue(get().jobUuid),

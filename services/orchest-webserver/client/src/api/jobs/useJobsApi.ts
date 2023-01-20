@@ -1,5 +1,5 @@
 import { JobData } from "@/types";
-import { memoizeFor, MemoizePending } from "@/utils/promise";
+import { memoized, MemoizePending } from "@/utils/promise";
 import { mapRecord } from "@/utils/record";
 import create from "zustand";
 import { jobsApi } from "./jobsApi";
@@ -17,7 +17,7 @@ export type JobsApi = {
 export const useJobsApi = create<JobsApi>((set) => {
   return {
     jobs: undefined,
-    fetchOne: memoizeFor(500, async (jobUuid) => {
+    fetchOne: memoized(async (jobUuid) => {
       if (!jobUuid) return;
 
       const job = await jobsApi.fetchOne(jobUuid, true);
@@ -28,7 +28,7 @@ export const useJobsApi = create<JobsApi>((set) => {
 
       return job;
     }),
-    fetchAll: memoizeFor(500, async () => {
+    fetchAll: memoized(async () => {
       const jobs = await jobsApi.fetchAll();
 
       set({ jobs: mapRecord(jobs, "uuid") });

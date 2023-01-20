@@ -1,5 +1,5 @@
 import { PipelineRun } from "@/types";
-import { memoizeFor, MemoizePending } from "@/utils/promise";
+import { memoized, MemoizePending } from "@/utils/promise";
 import create from "zustand";
 import { pipelineRunsApi } from "./pipelineRunsApi";
 
@@ -15,7 +15,7 @@ export type PipelineRunsApi = {
 export const usePipelineRunsApi = create<PipelineRunsApi>((set) => {
   return {
     running: [],
-    cancel: memoizeFor(500, async (runUuid: string) => {
+    cancel: memoized(async (runUuid: string) => {
       await pipelineRunsApi.cancel(runUuid);
 
       set(({ running }) => ({
@@ -24,7 +24,7 @@ export const usePipelineRunsApi = create<PipelineRunsApi>((set) => {
         ),
       }));
     }),
-    fetchRunning: memoizeFor(500, async () => {
+    fetchRunning: memoized(async () => {
       const running = await pipelineRunsApi.fetchAll({ active: true });
 
       set({ running });

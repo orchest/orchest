@@ -1,5 +1,5 @@
 import { Pagination, PipelineRun, PipelineRunStatus } from "@/types";
-import { memoizeFor, MemoizePending } from "@/utils/promise";
+import { memoized, MemoizePending } from "@/utils/promise";
 import create from "zustand";
 import { jobRunsApi, JobRunsPageQuery, StatusUpdate } from "./jobRunsApi";
 
@@ -44,7 +44,7 @@ export const useJobRunsApi = create<JobRunsApi>((set) => {
   return {
     runs: undefined,
     pagination: undefined,
-    fetchPage: memoizeFor(1000, async (query) => {
+    fetchPage: memoized(async (query) => {
       const result = await jobRunsApi.fetchPage(query);
 
       set({

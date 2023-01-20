@@ -68,14 +68,16 @@ export type MemoizePending<F extends AnyAsyncFunction, T = ResolutionOf<F>> = ((
   bypass: (...args: Parameters<F>) => CancelablePromise<T>;
 };
 
+const DEFAULT_PROMISE_MEMO_TIMEOUT = 500;
+
 export type MemoizeOptions = {
   /**
    * How long a promise will be memoized for, in milliseconds.
-   * If not set, the promise is memoized until the promise is resolved or rejected.
+   * Defaults to `DEFAULT_PROMISE_MEMO_TIMEOUT` (500ms).
    *
    * After this duration has elapsed, calls to the function creates a new promise.
    */
-  duration?: number;
+  timeout?: number;
   /**
    * If true: promises that have been pending for longer than the configured `duration`
    * will be canceled and rejected with a `PromiseCanceledError` regardless of their result.
@@ -85,24 +87,27 @@ export type MemoizeOptions = {
 };
 
 /**
- * Prevents the creation of new promises from an asynchronous function
- * by memoizing the promise of the first call and returning it for
- * calls made with identical arguments while the first promise is pending.
+ * Memoizes the promises created by the provided async function.
+ * This prevents the creation of new promises from the function
+ * while one with identical parameters are still pending.
  *
  * This is useful in (for example) fetcher functions when multiple components
  * may request the same data within short succession, and you want to prevent
  * duplicate requests which are going to return the same response.
  *
- * Arguments are compared by value using `JSON.stringify`.
+ * Note: Parameters are compared by value using `JSON.stringify`.
  * @param fn A function which returns a promise to memoize by arguments.
  * @param options Optional memoization options.
  * @returns
  *  A proxy function that either calls `fn` and creates a new memoized promise,
  *  or returns a pending memoized promise created with identical arguments.
  */
-export const memoize = <F extends AnyAsyncFunction, T = ResolutionOf<F>>(
+export const memoized = <F extends AnyAsyncFunction, T = ResolutionOf<F>>(
   fn: F,
-  { duration = Infinity, cancelExpired = false }: MemoizeOptions = {}
+  {
+    timeout: duration = DEFAULT_PROMISE_MEMO_TIMEOUT,
+    cancelExpired = false,
+  }: MemoizeOptions = {}
 ): MemoizePending<F, T> => {
   const pending: Record<string, MemoizedPromise<T>> = Object.create(null);
 
@@ -162,15 +167,3 @@ export const memoize = <F extends AnyAsyncFunction, T = ResolutionOf<F>>(
     bypass: (...args: Parameters<F>) => makeCancelable(fn(...args)),
   });
 };
-
-/**
- * Memoizes a pending promises created from identical arguments for a given duration.
- *
- * Shorthand for `memoize(fn, { duration, cancelExpired: false })`
- * @param duration How long to memoize pending promises for, in milliseconds.
- * @param fn A function which returns a promise to memoize by arguments.
- */
-export const memoizeFor = <F extends AnyAsyncFunction>(
-  duration: number,
-  fn: F
-) => memoize<F>(fn, { duration, cancelExpired: false });

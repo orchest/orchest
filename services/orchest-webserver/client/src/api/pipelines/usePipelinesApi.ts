@@ -1,6 +1,6 @@
 import { PipelineMetaData } from "@/types";
 import { join } from "@/utils/path";
-import { memoizeFor, MemoizePending } from "@/utils/promise";
+import { memoized, MemoizePending } from "@/utils/promise";
 import create from "zustand";
 import { pipelinesApi } from "./pipelinesApi";
 
@@ -52,19 +52,19 @@ export const usePipelinesApi = create<PipelinesApi>((set, get) => {
           uuid === pipelineUuid && project_uuid === projectUuid
       );
     },
-    fetchAll: memoizeFor(500, async () => {
+    fetchAll: memoized(async () => {
       const pipelines = await pipelinesApi.fetchAll();
 
       set({ pipelines });
     }),
-    fetchForProject: memoizeFor(500, async (projectUuid) => {
+    fetchForProject: memoized(async (projectUuid) => {
       if (!projectUuid) return;
 
       const pipelines = await pipelinesApi.fetchForProject(projectUuid);
 
       set({ pipelines: mergePipelines(pipelines) });
     }),
-    delete: memoizeFor(500, async (projectUuid, pipelineUuid) => {
+    delete: memoized(async (projectUuid, pipelineUuid) => {
       if (!projectUuid || !pipelineUuid) return;
 
       await pipelinesApi.deletePipeline(projectUuid, pipelineUuid);

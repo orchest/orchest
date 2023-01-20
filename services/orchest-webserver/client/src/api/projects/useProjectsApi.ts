@@ -1,5 +1,5 @@
 import { Project } from "@/types";
-import { memoizeFor, MemoizePending } from "@/utils/promise";
+import { memoized, MemoizePending } from "@/utils/promise";
 import create from "zustand";
 import { persist } from "zustand/middleware";
 import { FetchAllParams, projectsApi, ProjectUpdateData } from "./projectsApi";
@@ -50,20 +50,20 @@ export const useProjectsApi = create(
       return {
         projects: undefined,
         deleting: [],
-        fetchAll: memoizeFor(500, reload),
-        create: memoizeFor(500, async (name) => {
+        fetchAll: memoized(reload),
+        create: memoized(async (name) => {
           const uuid = await projectsApi.post(name);
           return await reloadAndFind(uuid);
         }),
-        update: memoizeFor(500, async (uuid, data) => {
+        update: memoized(async (uuid, data) => {
           await projectsApi.put(uuid, data);
           return await reloadAndFind(uuid);
         }),
-        rename: memoizeFor(500, async (uuid: string, newName: string) => {
+        rename: memoized(async (uuid: string, newName: string) => {
           await projectsApi.put(uuid, { name: newName });
           await reload();
         }),
-        delete: memoizeFor(500, async (projectUuid: string) => {
+        delete: memoized(async (projectUuid: string) => {
           set(({ deleting }) => ({ deleting: [...deleting, projectUuid] }));
 
           await projectsApi.delete(projectUuid);
