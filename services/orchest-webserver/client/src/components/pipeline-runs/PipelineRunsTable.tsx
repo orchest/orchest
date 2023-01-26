@@ -9,6 +9,7 @@ export type JobRunsTableProps = {
   runs: PipelineRun[];
   expandable?: boolean;
   breadcrumbs?: boolean;
+  viewLink?: boolean;
 };
 
 export const PipelineRunsTable = ({ runs, ...rowProps }: JobRunsTableProps) => {
