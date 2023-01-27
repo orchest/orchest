@@ -18,7 +18,7 @@ export type SystemStatusIconProps = {
 export type SystemStatusIconSize = "small" | "medium" | "large";
 
 const progressSize: Record<SystemStatusIconSize, number> = {
-  small: 16,
+  small: 18,
   medium: 24,
   large: 30,
 };
