@@ -414,19 +414,6 @@ class PipelineRunsList(Resource):
             undefer(models.NonInteractivePipelineRun.env_variables),
         )
 
-        if sort == "oldest":
-            job_runs_query = job_runs_query.order_by(
-                asc(models.NonInteractivePipelineRun.created_time),
-                asc(models.NonInteractivePipelineRun.job_run_index),
-                asc(models.NonInteractivePipelineRun.job_run_pipeline_run_index),
-            )
-        else:
-            job_runs_query = job_runs_query.order_by(
-                desc(models.NonInteractivePipelineRun.created_time),
-                desc(models.NonInteractivePipelineRun.job_run_index),
-                desc(models.NonInteractivePipelineRun.job_run_pipeline_run_index),
-            )
-
         if project_uuids is not None or project_pipeline_uuids is not None:
             exp = None
             if project_uuids is not None:
@@ -459,6 +446,19 @@ class PipelineRunsList(Resource):
             job_runs_query = fuzzy_filter_non_interactive_pipeline_runs(
                 job_runs_query,
                 args.fuzzy_filter,
+            )
+
+        if sort == "oldest":
+            job_runs_query = job_runs_query.order_by(
+                asc(models.NonInteractivePipelineRun.started_time),
+                asc(models.NonInteractivePipelineRun.job_run_index),
+                asc(models.NonInteractivePipelineRun.job_run_pipeline_run_index),
+            )
+        else:
+            job_runs_query = job_runs_query.order_by(
+                desc(models.NonInteractivePipelineRun.started_time),
+                desc(models.NonInteractivePipelineRun.job_run_index),
+                desc(models.NonInteractivePipelineRun.job_run_pipeline_run_index),
             )
 
         if args.page is not None and args.page_size is not None:
