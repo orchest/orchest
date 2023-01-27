@@ -102,7 +102,9 @@ export const PipelineRunRow = ({
           </Stack>
         </TableCell>
 
-        <TableCell sx={{ textAlign: "right", whiteSpace: "nowrap" }}>
+        <TableCell
+          sx={{ textAlign: "right", whiteSpace: "nowrap", minWidth: 177 }}
+        >
           {run.started_time ? humanizeDate(run.started_time) : "—"}
         </TableCell>
 

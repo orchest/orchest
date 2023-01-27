@@ -297,7 +297,7 @@ export type PipelineRun = {
   pipeline_uuid: string;
   status: PipelineRunStatus;
   server_time: string;
-  started_time: string;
+  started_time?: string;
   finished_time: string | null;
   pipeline_steps: PipelineRunStep[];
   env_variables: Record<string, string>;

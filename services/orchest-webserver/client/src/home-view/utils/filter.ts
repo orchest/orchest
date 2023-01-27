@@ -38,9 +38,13 @@ export const maxAgeInMilliseconds = (maxAge: RunMaxAxe) => {
   }
 };
 
-const matchesMaxAge = (run: PipelineRun, maxAge: RunMaxAxe) =>
-  Date.parse(run.started_time) + maxAgeInMilliseconds(maxAge) > Date.now();
+const matchesMaxAge = (run: PipelineRun, maxAge: RunMaxAxe) => {
+  if (!run.started_time) return true;
 
+  return (
+    Date.parse(run.started_time) + maxAgeInMilliseconds(maxAge) > Date.now()
+  );
+};
 const matchesStatus = (run: PipelineRun, status: SystemStatus) => {
   if (isJobRun(run) && status === "SCHEDULED") {
     return run.status === "PENDING";
@@ -62,12 +66,21 @@ const matchesRunFilter = (run: PipelineRun, filter: RunFilterState) =>
     )) &&
   matchesMaxAge(run, filter.maxAge);
 
+const compareStartTime = (
+  left: string | undefined,
+  right: string | undefined
+): number => {
+  if (!left) return -1;
+  else if (!right) return 1;
+  else return left.localeCompare(right);
+};
+
 /** Filters and sorts the pipeline runs according to the filter state. */
 export const filterRuns = (runs: PipelineRun[], filter: RunFilterState) =>
   runs
     .filter((run) => matchesRunFilter(run, filter))
     .sort((left, right) =>
       filter.sort === "oldest"
-        ? left.started_time.localeCompare(right.started_time)
-        : right.started_time.localeCompare(left.started_time)
+        ? compareStartTime(left.started_time, right.started_time)
+        : compareStartTime(right.started_time, left.started_time)
     );
