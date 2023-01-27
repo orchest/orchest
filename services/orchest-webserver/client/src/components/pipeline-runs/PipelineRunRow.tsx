@@ -88,7 +88,11 @@ export const PipelineRunRow = ({
 
         <TableCell sx={{ textAlign: "right" }}>
           <Stack direction="row" justifyContent="flex-end">
-            <SystemStatusChip status={run.status} flavor="job" size="small" />
+            <SystemStatusChip
+              status={run.status}
+              flavor={isJobRun(run) ? "job" : "pipeline"}
+              size="small"
+            />
 
             {viewLink && (
               <Button LinkComponent={RouteLink} size="small" href={runLink}>
