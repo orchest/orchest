@@ -1,3 +1,4 @@
+import { useRouteLink } from "@/hooks/useCustomRoute";
 import { useToggle } from "@/hooks/useToggle";
 import { formatPipelineParams } from "@/jobs-view/common";
 import { PipelineRun } from "@/types";
@@ -5,6 +6,7 @@ import { humanizeDate } from "@/utils/date-time";
 import { isJobRun } from "@/utils/pipeline-run";
 import { ChevronRightSharp } from "@mui/icons-material";
 import MoreHorizOutlined from "@mui/icons-material/MoreHorizOutlined";
+import { Button } from "@mui/material";
 import Box from "@mui/material/Box";
 import Collapse from "@mui/material/Collapse";
 import IconButton from "@mui/material/IconButton";
@@ -14,6 +16,7 @@ import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { SystemStatusChip } from "../common/SystemStatusChip";
+import { RouteLink } from "../RouteLink";
 import { PipelineRunBreadcrumbs } from "./PipelineRunBreadcrumbs";
 import { PipelineRunContextMenu } from "./PipelineRunContextMenu";
 
@@ -24,16 +27,28 @@ export type PipelineRunRowProps = {
   expandable?: boolean;
   /** Whether or not breadcrumbs (project, pipeline, job) should be displayed in each row. */
   breadcrumbs?: boolean;
+  /** Whether or not a link to the pipeline/job run should be displayed. */
+  viewLink?: boolean;
 };
 
 export const PipelineRunRow = ({
   run,
   expandable = false,
   breadcrumbs = false,
+  viewLink = false,
 }: PipelineRunRowProps) => {
   const [isExpanded, toggleRow] = useToggle();
   const [isMenuOpen, toggleMenu] = useToggle();
   const moreButtonRef = React.useRef<HTMLButtonElement>(null);
+  const runLink = useRouteLink({
+    route: isJobRun(run) ? "jobRun" : "pipeline",
+    query: {
+      projectUuid: run.project_uuid,
+      pipelineUuid: run.pipeline_uuid,
+      jobUuid: isJobRun(run) ? run.job_uuid : undefined,
+      runUuid: run.uuid,
+    },
+  });
 
   return (
     <>
@@ -72,10 +87,24 @@ export const PipelineRunRow = ({
         </TableCell>
 
         <TableCell sx={{ textAlign: "right" }}>
-          <SystemStatusChip status={run.status} flavor="job" size="small" />
+          <Stack direction="row" justifyContent="flex-end">
+            <SystemStatusChip
+              status={run.status}
+              flavor={isJobRun(run) ? "job" : "pipeline"}
+              size="small"
+            />
+
+            {viewLink && (
+              <Button LinkComponent={RouteLink} size="small" href={runLink}>
+                View
+              </Button>
+            )}
+          </Stack>
         </TableCell>
 
-        <TableCell sx={{ textAlign: "right", whiteSpace: "nowrap" }}>
+        <TableCell
+          sx={{ textAlign: "right", whiteSpace: "nowrap", minWidth: 177 }}
+        >
           {run.started_time ? humanizeDate(run.started_time) : "—"}
         </TableCell>
 

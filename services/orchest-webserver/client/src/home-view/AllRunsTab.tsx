@@ -110,7 +110,9 @@ const usePollJobRunsWithFilter = (filter: RunFilterState, page: number) => {
           }))
         : undefined,
       statuses: filter.statuses.length
-        ? filter.statuses.map(toPipelineRunStatus)
+        ? filter.statuses
+            .filter((status) => status !== "PENDING")
+            .map(toPipelineRunStatus)
         : undefined,
     }),
     [
