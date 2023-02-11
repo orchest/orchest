@@ -77,7 +77,7 @@ h11==0.14.0
     # via wsproto
 idna==3.4
     # via requests
-ipython==8.6.0
+ipython==8.10.0
     # via -r requirements.in
 ipython-genutils==0.2.0
     # via -r requirements.in
