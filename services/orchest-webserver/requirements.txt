@@ -250,7 +250,7 @@ webencodings==0.5.1
     #   tinycss2
 websocket-client==1.4.2
     # via python-socketio
-werkzeug==2.2.2
+werkzeug==2.2.3
     # via
     #   -r requirements.in
     #   flask
