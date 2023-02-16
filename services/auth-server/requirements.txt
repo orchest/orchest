@@ -25,7 +25,7 @@ flask==1.1.1
     #   flask-migrate
     #   flask-script
     #   flask-sqlalchemy
-    #   orchest-internals
+    #   sanitized-package
 flask-limiter==1.5
     # via -r requirements.in
 flask-migrate==2.5.3
@@ -56,12 +56,13 @@ markupsafe==2.1.1
     # via
     #   jinja2
     #   mako
+    #   werkzeug
 monotonic==1.6
     # via posthog
 packaging==23.0
     # via limits
 posthog==1.4.7
-    # via orchest-internals
+    # via sanitized-package
 psycopg2-binary==2.8.6
     # via -r requirements.in
 python-dateutil==2.8.2
@@ -69,8 +70,8 @@ python-dateutil==2.8.2
 requests==2.26.0
     # via
     #   -r requirements.in
-    #   orchest-internals
     #   posthog
+    #   sanitized-package
 six==1.16.0
     # via
     #   flask-limiter
@@ -88,7 +89,7 @@ typing-extensions==4.4.0
     # via limits
 urllib3==1.26.9
     # via requests
-werkzeug==2.0.3
+werkzeug==2.2.3
     # via
     #   -r requirements.in
     #   flask
