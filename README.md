@@ -13,6 +13,9 @@
 <a href=https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w><img src="https://img.shields.io/badge/Slack-violet?style=flat&logo=slack&labelColor=5c5c5c"></a>
 </p>
 
+<p align=center><i>Notice: we’re no longer actively developing Orchest. Please read more <a href="https://mailchi.mp/orchest/a-new-chapter-for-orchest">here</a>.</i></p>
+
+
 ## Build data pipelines, the easy way 🙌
 
 No frameworks. No YAML. Just write your data processing code directly in **Python**, **R** or
