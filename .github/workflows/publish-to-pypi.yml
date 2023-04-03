@@ -4,6 +4,7 @@ name: Publish SDK & CLI to PyPi
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   upload-to-pypi:
