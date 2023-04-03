@@ -28,10 +28,7 @@ RUN pip install pip --upgrade \
     # JupyterLab and possible extensions need to be installed first so
     # that they are included in the build.
     && pip install --no-cache -r requirements.txt \
-    && git clone https://github.com/orchest/orchest-integration.git /jupyter-extensions/orchest-integration \
-    && jupyter labextension install /jupyter-extensions/orchest-integration \
-        --no-build \
-        --BaseExtensionApp.app_dir=$extension_dir \
+    && mkdir -p $extension_dir \
     && cp -rfT $pip_jupyter_extension_dir $extension_dir/extensions \
     && jupyter lab build --dev-build=False --LabBuildApp.app_dir=$extension_dir \
     && jupyter lab clean --LabCleanApp.app_dir=$extension_dir
