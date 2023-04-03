@@ -21,8 +21,6 @@ export type SystemStatus =
 
 export type StatusFlavor = "job" | "pipeline" | "build";
 
-export const isRunning = (status: SystemStatus) => status === "STARTED";
-
 export const hasEnded = (status: SystemStatus) =>
   status === "ABORTED" || status === "SUCCESS" || status === "FAILURE";
 

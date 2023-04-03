@@ -164,7 +164,7 @@ export const useCustomRoute = () => {
         : toQueryString(query);
 
       if (shouldOpenNewTab) {
-        openInNewTab(`${window.location.origin}${pathname}?${queryString}`);
+        openInNewTab(window.location.origin + pathname + queryString);
       } else {
         const mutateHistory = replace ? history.replace : history.push;
         mutateHistory({

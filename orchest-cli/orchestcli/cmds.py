@@ -202,7 +202,7 @@ class OrchestCmds:
             ) as f:
                 txt_deploy_controller = f.read()
         else:
-            version = _fetch_latest_available_version(curr_version=None, is_cloud=cloud)
+            version = _fetch_latest_available_version()
             if version is None:
                 utils.echo(
                     "Failed to fetch latest available version. Without the version"
@@ -656,7 +656,6 @@ class OrchestCmds:
             # installed. This is exactly what we want.
             curr_version = self._get_orchest_cluster_version(ns, cluster_name)
             tmp_fetching = "running mode"
-            is_cloud_mode = self._is_orchest_in_cloud_mode(ns, cluster_name)
 
         except CRObjectNotFound as e:
             utils.echo(
@@ -681,7 +680,7 @@ class OrchestCmds:
             raise e
 
         if version is None:
-            version = _fetch_latest_available_version(curr_version, is_cloud_mode)
+            version = _fetch_latest_available_version()
             if version is None:
                 utils.echo(
                     "Failed to fetch latest available version to update to.", err=True
@@ -1067,9 +1066,7 @@ class OrchestCmds:
         """Gets Orchest version."""
         try:
             if latest_flag:
-                version = _fetch_latest_available_version(
-                    curr_version=None, is_cloud=False
-                )
+                version = _fetch_latest_available_version()
             else:
                 version = self._get_orchest_cluster_version(
                     kwargs["namespace"],
@@ -1808,18 +1805,13 @@ def _is_calver_version(version: str) -> bool:
     return True
 
 
-def _fetch_latest_available_version(
-    curr_version: t.Optional[str], is_cloud: bool
-) -> t.Optional[str]:
-    url = (
-        "https://update-info.orchest.io/api/orchest/"
-        f"update-info/v3?version={curr_version}&is_cloud={is_cloud}"
-    )
+def _fetch_latest_available_version() -> t.Optional[str]:
+    url = "https://api.github.com/repos/orchest/orchest/releases/latest"
     resp = requests.get(url, timeout=5)
 
     if resp.status_code == 200:
         data = resp.json()
-        return data["latest_version"]
+        return data["tag_name"]
     else:
         return None
 

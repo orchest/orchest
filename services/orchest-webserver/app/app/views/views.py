@@ -340,13 +340,16 @@ def register_views(app, db):
             return ""
 
         else:
+            # If it's an empty string the FE will not allow editing,
+            # perhaps a bug that happened when reworking the settings.
+            empty_script = "\n"
             try:
                 with open(setup_script_path, "r") as f:
                     script = f.read()
-                    return jsonify({"script": script if script else ""})
+                    return jsonify({"script": script if script else empty_script})
             except FileNotFoundError as fnf_error:
                 current_app.logger.error(f"Failed to read setup_script {fnf_error}")
-                return ""
+                return jsonify({"script": empty_script})
 
     @app.route("/async/pipelines/<project_uuid>/<pipeline_uuid>", methods=["DELETE"])
     def pipelines_delete(project_uuid, pipeline_uuid):
