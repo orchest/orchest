@@ -187,10 +187,9 @@ install in another namespace you can use tools like [yq](https://github.com/mike
 change the specified namespace in `orchest-controller.yaml` and `example-orchestcluster.yaml`.
 
 ```bash
-# Get the latest available Orchest version
-export VERSION=$(curl \
-   "https://update-info.orchest.io/api/orchest/update-info/v3?version=None&is_cloud=False" \
-   | grep -oP "v\d+\.\d+\.\d+")
+# Get the latest available Orchest version at https://github.com/orchest/orchest/releases
+# Example:
+export VERSION="v2023.01.8"
 
 # Create the namespace to install Orchest in
 kubectl create ns orchest

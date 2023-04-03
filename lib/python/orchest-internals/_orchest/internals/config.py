@@ -136,7 +136,4 @@ DEFAULT_ENVIRONMENTS = [
 
 SIDECAR_PORT = 1111
 
-ORCHEST_UPDATE_INFO_URL = (
-    "https://update-info.orchest.io/api/orchest/update-info/v3?version={version}"
-    f"&is_cloud={CLOUD}"
-)
+ORCHEST_UPDATE_INFO_URL = "https://api.github.com/repos/orchest/orchest/releases/latest"

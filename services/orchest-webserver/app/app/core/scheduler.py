@@ -219,6 +219,7 @@ class Jobs:
             code = resp.status_code
             if code == 200:
                 data = resp.json()
+                data["latest_version"] = data["tag_name"]
                 with open(app.config["ORCHEST_UPDATE_INFO_JSON_PATH"], "w") as f:
                     json.dump(data, f)
             else:
