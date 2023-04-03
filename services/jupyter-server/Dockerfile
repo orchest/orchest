@@ -28,11 +28,7 @@ RUN pip install pip --upgrade \
     # JupyterLab and possible extensions need to be installed first so
     # that they are included in the build.
     && pip install --no-cache -r requirements.txt \
-    && git clone https://github.com/orchest/visual-tags.git /jupyter-extensions/visual-tags \
     && git clone https://github.com/orchest/orchest-integration.git /jupyter-extensions/orchest-integration \
-    && jupyter labextension install /jupyter-extensions/visual-tags \
-        --no-build \
-        --BaseExtensionApp.app_dir=$extension_dir \
     && jupyter labextension install /jupyter-extensions/orchest-integration \
         --no-build \
         --BaseExtensionApp.app_dir=$extension_dir \
