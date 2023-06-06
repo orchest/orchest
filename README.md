@@ -6,7 +6,7 @@
 
 <p align="center">
 <a href=https://orchest.io><img src="https://img.shields.io/badge/Website-violet?style=flat&logo=webflow&labelColor=5c5c5c"></a>
-<a href=https://docs.orchest.io/en/stable><img src="https://readthedocs.org/projects/orchest/badge/?version=stable&style=flat"></a>
+<a href=https://orchest.readthedocs.io/en/stable><img src="https://readthedocs.org/projects/orchest/badge/?version=stable&style=flat"></a>
 <a href=https://www.orchest.io/video-tutorials><img src="https://img.shields.io/badge/Video tutorials-blue?style=flat&logo=airplayvideo&labelColor=5c5c5c"></a>
 <a href=https://docs.orchest.io/en/stable/getting_started/quickstart.html><img src="https://img.shields.io/badge/Quickstart-blue?style=flat&logo=readthedocs&labelColor=5c5c5c&color=fc0373"></a>
 <a href=https://www.orchest.io/#orchest-cloud><img src="https://img.shields.io/badge/Orchest%20Cloud-blue?style=flat&logo=iCloud&labelColor=5c5c5c&logoColor=white"></a>
