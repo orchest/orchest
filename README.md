@@ -6,7 +6,6 @@
 
 <p align="center">
 <a href=https://orchest.readthedocs.io/en/stable><img src="https://readthedocs.org/projects/orchest/badge/?version=stable&style=flat"></a>
-<a href=https://docs.orchest.io/en/stable/getting_started/quickstart.html><img src="https://img.shields.io/badge/Quickstart-blue?style=flat&logo=readthedocs&labelColor=5c5c5c&color=fc0373"></a>
 </p>
 
 <p align=center><i>Notice: we’re no longer actively developing Orchest. We could not find a way to make building a workflow orchestrator commercially viable. Check out Apache Airflow for a robust workflow solution.</i></p>
