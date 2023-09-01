@@ -6,6 +6,8 @@
 #
 -e file:../../lib/python/orchest-internals
     # via -r requirements-dev.in
+backoff==1.11.1
+    # via posthog
 certifi==2021.10.8
     # via requests
 charset-normalizer==2.0.12
@@ -13,22 +15,32 @@ charset-normalizer==2.0.12
 click==8.1.0
     # via flask
 flask==2.1.0
-    # via orchest-internals
+    # via sanitized-package
 idna==3.3
     # via requests
-importlib-metadata==4.11.3
-    # via flask
 itsdangerous==2.1.2
     # via flask
 jinja2==3.1.1
     # via flask
 markupsafe==2.1.1
-    # via jinja2
+    # via
+    #   jinja2
+    #   werkzeug
+monotonic==1.6
+    # via posthog
+posthog==1.4.7
+    # via sanitized-package
+python-dateutil==2.8.2
+    # via posthog
 requests==2.27.1
-    # via orchest-internals
+    # via
+    #   posthog
+    #   sanitized-package
+six==1.16.0
+    # via
+    #   posthog
+    #   python-dateutil
 urllib3==1.26.9
     # via requests
-werkzeug==2.1.0
+werkzeug==2.2.3
     # via flask
-zipp==3.7.0
-    # via importlib-metadata
