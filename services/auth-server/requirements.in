@@ -1,7 +1,7 @@
 Flask-SQLAlchemy
 Flask<2
 SQLAlchemy-Utils
-Werkzeug<2.1.0  # Newer versions are broken with old Flask
+Werkzeug<2.3.0  # Newer versions are broken with old Flask
 flask-limiter==1.5 # Due to our Flask<2 requirement.
 flask-migrate
 flask-script
