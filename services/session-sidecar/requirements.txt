@@ -34,7 +34,7 @@ markupsafe==2.1.1
     # via jinja2
 monotonic==1.6
     # via posthog
-oauthlib==3.2.1
+oauthlib==3.2.2
     # via requests-oauthlib
 posthog==1.4.7
     # via sanitized-package
