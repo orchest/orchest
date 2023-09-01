@@ -55,7 +55,7 @@ flask==2.2.2
     # via sanitized-package
 gitdb==4.0.9
     # via gitpython
-gitpython==3.1.27
+gitpython==3.1.30
     # via nbdime
 idna==3.3
     # via
